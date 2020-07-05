@@ -107,9 +107,9 @@ class console:
         //let orig_width, orig_height = num_cells_x*__fontwidth + 2*__border_x_px, num_cells_y*__line_height + 2*__border_y_px
         //scale_x = window_xy.x / orig_width
         //scale_y = window_xy.y / orig_height
-        __rectsize_xy = xy_f{ __fontwidth, fontheight }
-        __dcell_x = xy_f{ __fontwidth, 0 }
-        __dcr = xy_f{ -num_cells_x * __fontwidth, __line_height }
+        __rectsize_xy = xy_i{ __fontwidth, fontheight }
+        __dcell_x = xy_i{ __fontwidth, 0 }
+        __dcr = xy_i{ -num_cells_x * __fontwidth, __line_height }
 
     def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
         // init window
