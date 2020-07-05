@@ -18,7 +18,7 @@ class console:
     tab_num_spaces:int = 4
     tab_stops:[int] = [1, 11, 21, 31]
     text_rbuffer_pagenum:int = 1
-    screen_row_idx:int = 1
+    screen_row_idx:int = 0
     text_rbuffer:[int] = []
     text_c1buffer:[xyzw_f] = []
     text_c2buffer:[xyzw_f] = []
@@ -32,7 +32,6 @@ class console:
     last_key_pressed = ""
     key_is_down = false
     input_start_lpointer:int = 1
-    setup_error = true
     running = true
     window_xy_ = xy_i{0, 0}
     fontwidth_:int = 20
@@ -69,6 +68,7 @@ class console:
         var bufferidx = 0
         gl_translate(xy_f{border_x_px_, border_y_px_})
         for (num_cells_y) y:
+            let idx_ = (y + screen_row_idx) * num_cells_x
             for (num_cells_x) x:
                 // background cell
                 gl_color(text_c2buffer[bufferidx])
@@ -76,7 +76,7 @@ class console:
                 // foreground text
                 gl_color(text_c1buffer[bufferidx])
                 //love.graphics.print(txt_ptr[j], self.scale_x * (self.border_x_px_ + (j - 1) * self.fontwidth), self.scale_y * (self.border_y_px_ + self.line_height * (i - 1)), 0, self.scale_x, self.scale_y)
-                gl_text(unicode_to_string([text_rbuffer[y*num_cells_x + x]]))
+                gl_text(unicode_to_string([text_rbuffer[idx_ + x]]))
                 gl_translate(dcell_x_)
                 bufferidx++
             gl_translate(dcr_)
@@ -126,6 +126,8 @@ class console:
 
     def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
         // init window
+        border_x_px_ = border_cells_x * fontwidth_
+        border_y_px_ = border_cells_y * fontheight
         let init_xs, init_ys = num_cells_x * fontwidth_ + 2 * border_x_px_, num_cells_y * line_height + 2 * border_y_px_
         print "Init debug: "
         print "\t" + init_xs + ", " + init_ys
@@ -137,8 +139,6 @@ class console:
         fontwidth_ = gl_text_size(" ").x
         // set up text buffer
         clearall()
-        // mark setup as successful
-        setup_error = false
 
     def update():
         if gl_frame() and gl_button("escape") != 1:
