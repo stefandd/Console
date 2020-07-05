@@ -1,5 +1,5 @@
 class console:
-    fontheight = 20
+    fontheight = 20.0
     line_spacing = 1.0
     line_height = 20
     num_cells_x = 40
@@ -32,14 +32,15 @@ class console:
     input_start_lpointer = 1
     setup_error = true
     running = true
-    __window_xy = xy_i{0, 0}
-    __fontwidth = 20
+    __window_xy = xy_f{0, 0}
+    __fontwidth = 20.0
     __line_height = 24
     __border_x_px = 40
     __border_y_px = 40
-    __rectsize_xy = xy_i{ __fontwidth, __line_height * fontheight }
-    __dcell_x = xy_i{ __fontwidth, 0 } // single char translation
-    __dcr = xy_i{ -num_cells_x * __fontwidth, __line_height * fontheight } //  cr translation
+    __rectsize_xy = []
+    __rectsize_xy = xy_f{ __fontwidth, __line_height * fontheight }
+    //__dcell_x = xy_f{ __fontwidth, 0 } // single char translation
+    //__dcr = xy_f{ -num_cells_x * __fontwidth, __line_height * fontheight } //  cr translation
     __input_backspace_semaphore = false
     __time = 0
     __update_clients = []
@@ -58,21 +59,20 @@ class console:
         return map(num_cells_x*num_cells_y):
                     48 + rnd(75)
                     
-    def __textdraw()
+    def __textdraw():
         // draw screen characters
         let bufferidx = 0
-        let rectsize_xy = xy_f{ __fontwidth, fontheight }
-        for (num_cells_y*) y:
+        for (num_cells_y) y:
             for (num_cells_x) x:
                 // background cell
                 gl_color(text_c2buffer[bufferidx])
-                gl_rect(rectsize_xy)
+                gl_rect(this.__rectsize_xy)
                 // foreground text
                 gl_color(text_c1buffer[bufferidx])
                 //love.graphics.print(txt_ptr[j], self.scale_x * (self.__border_x_px + (j - 1) * self.fontwidth), self.scale_y * (self.__border_y_px + self.line_height * (i - 1)), 0, self.scale_x, self.scale_y)
                 gl_text(unicode_to_string([text_rbuffer[y*num_cells_x + x]]))
-                gl_translate(__dcell_x)
-            gl_translate(__dcr)
+                gl_translate(this.__dcell_x)
+            gl_translate(this.__dcr)
                 
     def __draw_border()
         let border_height = scale_y * __border_y_px
@@ -107,16 +107,16 @@ class console:
         //let orig_width, orig_height = num_cells_x*__fontwidth + 2*__border_x_px, num_cells_y*__line_height + 2*__border_y_px
         //scale_x = window_xy.x / orig_width
         //scale_y = window_xy.y / orig_height
-        __rectsize_xy = xy_i{ __fontwidth, fontheight }
-        __dcell_x = xy_i{ __fontwidth, 0 }
-        __dcr = xy_i{ -num_cells_x * __fontwidth, __line_height }
+        __rectsize_xy = xy_f{ __fontwidth, fontheight }
+        __dcell_x = xy_f{ __fontwidth, 0 }
+        __dcr = xy_f{ -num_cells_x * __fontwidth, __line_height }
 
     def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
         // init window
         fatal(gl_window(title, num_cells_x*__fontwidth + 2*__border_x_px, num_cells_y*__line_height + 2*__border_y_px, flags))
         // init font
         fatal(gl_set_font_name(font_path))
-        gl_set_font_size(fontheight)
+        gl_set_font_size(this.fontheight)
         __line_height = line_spacing * fontheight // * fontobj:getHeight() // line height in pixels
         // recalc frame size in px
         __fontwidth = gl_text_size(" ").x
