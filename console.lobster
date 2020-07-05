@@ -37,9 +37,9 @@ class console:
     __line_height = 24
     __border_x_px = 40
     __border_y_px = 40
-    __rectsize_xy = xy_f{ __fontwidth, __line_height * fontheight }
-    __dcell_x = xy_f{ __fontwidth, 0 } // single char translation
-    __dcr = xy_f{ -num_cells_x * __fontwidth, __line_height * fontheight } //  cr translation
+    __rectsize_xy = xy_i{ __fontwidth, __line_height * fontheight }
+    __dcell_x = xy_i{ __fontwidth, 0 } // single char translation
+    __dcr = xy_i{ -num_cells_x * __fontwidth, __line_height * fontheight } //  cr translation
     __input_backspace_semaphore = false
     __time = 0
     __update_clients = []
