@@ -32,18 +32,18 @@ class console:
     input_start_lpointer = 1
     setup_error = true
     running = true
-    __window_xy = xy_f{0, 0}
-    __fontwidth = 20.0
-    __line_height = 24
-    __border_x_px = 40
-    __border_y_px = 40
-    __rectsize_xy = xy_f{ __fontwidth, __line_height * fontheight }
-    //__dcell_x = xy_f{ __fontwidth, 0 } // single char translation
-    //__dcr = xy_f{ -num_cells_x * __fontwidth, __line_height * fontheight } //  cr translation
-    __input_backspace_semaphore = false
-    __time = 0
-    __update_clients = []
-    __do_client_updates = false
+    windows_xy_ = xy_f{0, 0}
+    fontwidth_ = 20.0
+    line_height_ = 24
+    border_x_px_ = 40
+    border_y_px_ = 40
+    rectsize_xy_ = xy_f{ fontwidth_, line_height_ * fontheight }
+    dcell_x_ = xy_f{ fontwidth_, 0 } // single char translation
+    dcr_ = xy_f{ -num_cells_x * fontwidth_, line_height_ * fontheight } //  cr translation    
+    input_backspace_semaphore_ = false
+    time_ = 0
+    update_clients_ = []
+    do_client_updates_ = false
     
     def clearall():
         let num_cells = num_cells_x*num_cells_y
@@ -58,24 +58,24 @@ class console:
         return map(num_cells_x*num_cells_y):
                     48 + rnd(75)
                     
-    def __textdraw():
+    def textdraw_():
         // draw screen characters
         let bufferidx = 0
         for (num_cells_y) y:
             for (num_cells_x) x:
                 // background cell
                 gl_color(text_c2buffer[bufferidx])
-                gl_rect(this.__rectsize_xy)
+                gl_rect(this.rectsize_xy_)
                 // foreground text
                 gl_color(text_c1buffer[bufferidx])
-                //love.graphics.print(txt_ptr[j], self.scale_x * (self.__border_x_px + (j - 1) * self.fontwidth), self.scale_y * (self.__border_y_px + self.line_height * (i - 1)), 0, self.scale_x, self.scale_y)
+                //love.graphics.print(txt_ptr[j], self.scale_x * (self.border_x_px_ + (j - 1) * self.fontwidth), self.scale_y * (self.border_y_px_ + self.line_height * (i - 1)), 0, self.scale_x, self.scale_y)
                 gl_text(unicode_to_string([text_rbuffer[y*num_cells_x + x]]))
-                gl_translate(this.__dcell_x)
-            gl_translate(this.__dcr)
+                gl_translate(this.dcell_x_)
+            gl_translate(this.dcr_)
                 
-    def __draw_border()
-        let border_height = scale_y * __border_y_px
-        let border_width = scale_x * __border_x_px
+    def draw_border_()
+        let border_height = scale_y * border_y_px_
+        let border_width = scale_x * border_x_px_
         /*
         love.graphics.setColor(self.border_color)
         if border_height > 0:
@@ -87,40 +87,40 @@ class console:
             love.graphics.rectangle("fill", 0, self.__window_height - border_height, self.__window_width - border_width, self.__window_height)
        */
         
-    def __draw()
+    def draw_()
         // clear the window
         gl_set_font_size(fontheight)
         gl_clear(background_color)
         
         if border_show:
-            __draw_border()
-        //__draw_behind()
-        //self:__draw_sprites_background()
-        __rescale()
-        __textdraw()
-        //self:__draw_sprites_foreground()
-        //__draw_in_front()
+            draw_border_()
+        //draw__behind()
+        //self:draw__sprites_background()
+        rescale_()
+        textdraw_()
+        //self:draw__sprites_foreground()
+        //draw__in_front()
             
-    def __rescale():
-        //__window_xy = gl_window_size()
-        //let orig_width, orig_height = num_cells_x*__fontwidth + 2*__border_x_px, num_cells_y*__line_height + 2*__border_y_px
+    def rescale_():
+        //windows_xy_ = gl_window_size()
+        //let orig_width, orig_height = num_cells_x*fontwidth_ + 2*border_x_px_, num_cells_y*line_height_ + 2*border_y_px_
         //scale_x = window_xy.x / orig_width
         //scale_y = window_xy.y / orig_height
-        __rectsize_xy = xy_f{ __fontwidth, fontheight }
-        __dcell_x = xy_f{ __fontwidth, 0 }
-        __dcr = xy_f{ -num_cells_x * __fontwidth, __line_height }
+        rectsize_xy_ = xy_f{ fontwidth_, fontheight }
+        dcell_x_ = xy_f{ fontwidth_, 0 }
+        dcr_ = xy_f{ -num_cells_x * fontwidth_, line_height_ }
 
     def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
         // init window
-        fatal(gl_window(title, num_cells_x*__fontwidth + 2*__border_x_px, num_cells_y*__line_height + 2*__border_y_px, flags))
+        fatal(gl_window(title, num_cells_x*fontwidth_ + 2*border_x_px_, num_cells_y*line_height_ + 2*border_y_px_, flags))
         // init font
         fatal(gl_set_font_name(font_path))
         gl_set_font_size(this.fontheight)
-        __line_height = line_spacing * fontheight // * fontobj:getHeight() // line height in pixels
+        line_height_ = line_spacing * fontheight // * fontobj:getHeight() // line height in pixels
         // recalc frame size in px
-        __fontwidth = gl_text_size(" ").x
-        __border_x_px = border_cells_x * __fontwidth
-        __border_y_px = border_cells_y * fontheight
+        fontwidth_ = gl_text_size(" ").x
+        border_x_px_ = border_cells_x * fontwidth_
+        border_y_px_ = border_cells_y * fontheight
         // call to resize to refresh canvas
         // TODO
         //__resize()
@@ -131,6 +131,6 @@ class console:
 
     def update():
         while gl_frame() and gl_button("escape") != 1:
-            __draw()
+            draw_()
         else:
             running = false
