@@ -1,7 +1,20 @@
 import std
 import gl
 
-def replace_string(s:string, search:string, replace:string) -> string:
+def string_search(s:string, pat:string) -> int: // slow brute force
+    //let a:int, b:int = 1, 2
+    //let N:int, M:int = s.length, pat.length
+    let N:int = s.length
+    let M:int = pat.length
+    for (N - M + 1) i:
+        for (M) j:
+            if substring(s, i+j, 1) != substring(pat, j, 1): // no match -> abort
+                break
+            elif j == M - 1: // still matching at last loop cycle? -> match
+                return i // return position
+    return -1 // no match
+
+def string_replace(s:string, search:string, replace:string) -> string:
     // recursive solution
     let slen = s.length
     let srchlen = search.length
@@ -29,8 +42,7 @@ class console:
     autoscroll = true
     tab_num_spaces:int = 4
     tab_stops:[int] = [1, 11, 21, 31]
-    text_rbuffer_pagenum:int = 1
-    screen_row_idx:int = 0
+    ulc_buffer_idx:int = 0
     text_rbuffer:[int] = []
     text_c1buffer:[xyzw_f] = []
     text_c2buffer:[xyzw_f] = []
@@ -77,18 +89,18 @@ class console:
                     
     def textdraw_():
         // draw screen characters
-        var bufferidx = 0
+        var bufferidx = ulc_buffer_idx
         gl_translate(xy_f{border_x_px_, border_y_px_})
         for (num_cells_y) y:
-            let idx_ = (y + screen_row_idx) * num_cells_x
             for (num_cells_x) x:
+                let curr_chr = text_rbuffer[bufferidx]
                 // background cell
                 gl_color(text_c2buffer[bufferidx])
                 gl_rect(this.rectsize_xy_)
-                // foreground text
-                gl_color(text_c1buffer[bufferidx])
-                //love.graphics.print(txt_ptr[j], self.scale_x * (self.border_x_px_ + (j - 1) * self.fontwidth), self.scale_y * (self.border_y_px_ + self.line_height * (i - 1)), 0, self.scale_x, self.scale_y)
-                gl_text(unicode_to_string([text_rbuffer[idx_ + x]]))
+                if curr_chr != 32:
+                    // foreground text
+                    gl_color(text_c1buffer[bufferidx])
+                    gl_text(unicode_to_string([curr_chr]))
                 gl_translate(dcell_x_)
                 bufferidx++
             gl_translate(dcr_)
@@ -156,3 +168,52 @@ class console:
             draw_()
         else:
             running = false
+
+    def printxy_clean_(str):
+        var rstr = ""
+        for (str.length) i:
+            let c = substring(str, i, 1)
+            if c == "\t":
+                rstr += repeat_string(" ", tab_num_spaces)
+            elif c != "\r": // remove most escape sequences
+                rstr += c
+        return rstr
+
+    /*
+    def printxy_print_(col, row, row_max, str):
+        let lb_pos, _ = utf8.find(str, '\n', 1, true)
+        var second_part:string = ""
+        if lb_pos:
+            //.sub(s,i,j) extracts a piece of the string s, from the i-th to the j-th character inclusive.
+            // split string in parts of before and after the \n 
+            second_part = utf8.sub(str, lb_pos+1, -1)
+            str = utf8.sub(str, 1, lb_pos-1)
+        // when we arrive here, the string str has no more \n line breaks. we use the wrap routine to determine in which column it s
+        let printlines = self:__wraptext(col, row, str)
+        let num_printlines = #printlines
+        // make sure that there are no nil rows in the text/color buffer object // fill any such gaps with blank strings
+        // write new lines
+        let cur_pos_col, cur_pos_row = col, row
+        for k = 1, num_printlines:
+            let insert_str = printlines[k]
+            let len_insert_str = utf8.len(insert_str)
+            let cur_row_idx = self.ulc_buffer_idx + cur_pos_row - 1
+            if cur_row_idx >= 1:                
+                // write new text, color row
+                for i = cur_pos_col, cur_pos_col + len_insert_str - 1:
+                    let charpos = i - cur_pos_col + 1
+                    self.text_rbuffer[cur_row_idx][i] = utf8.sub(insert_str, charpos, charpos)
+                    self.text_cbuffer[cur_row_idx][i][1] = self.text_color[1]
+                    self.text_cbuffer[cur_row_idx][i][2] = self.text_color[2]
+                    self.text_cbuffer[cur_row_idx][i][3] = self.text_color[3]                
+                if cur_pos_col + len_insert_str > self.number_cells_x:
+                    cur_pos_col = 1
+                    cur_pos_row = cur_pos_row + 1
+                else
+                    cur_pos_col = cur_pos_col + len_insert_str                
+                self.cursor_pos_x = cur_pos_col // save the current cursor x position globally
+                self.cursor_pos_y = cur_pos_row // save the current cursor y position globally
+        // then, the remainder (second_part) will be recursively printed in the row below
+        if second_part: // and utf8.len(second_part) > 0: // we need to allow a trailing '\n'
+            self:__printxy_print(1, cur_pos_row + 1, cur_pos_row + 1, second_part) // recursive call of this routine with the remainder (which may contain more \n chars
+    */
