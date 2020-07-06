@@ -1,6 +1,18 @@
 import std
 import gl
 
+def replace_string(s:string, search:string, replace:string) -> string:
+    // recursive solution
+    let slen = s.length
+    let srchlen = search.length
+    for (slen - srchlen + 1) i:
+        if substring(s, i, srchlen) == search:
+            if i == 0:
+                return replace + string_replace(substring(s, srchlen, -1), search, replace)
+            else:
+                return substring(s, 0, i) + replace + string_replace(substring(s, i + srchlen, -1), search, replace)
+    return s
+
 class console:
     fontheight:int = 20
     line_height:int = 20
@@ -129,8 +141,6 @@ class console:
         border_x_px_ = border_cells_x * fontwidth_
         border_y_px_ = border_cells_y * fontheight
         let init_xs, init_ys = num_cells_x * fontwidth_ + 2 * border_x_px_, num_cells_y * line_height + 2 * border_y_px_
-        print "Init debug: "
-        print "\t" + init_xs + ", " + init_ys
         fatal(gl_window(title, init_xs, init_ys, flags))
         // init font
         check(gl_set_font_name(font_path), "can\'t load font!")
