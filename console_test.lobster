@@ -8,8 +8,16 @@ var t0 = gl_time()
 c.init("Test1", "data/fonts/Square/Square.ttf", gl_window_init_no_vsync)
 
 c.text_color = xyzw_f{ 1, 1, 0, 1}
-c.printxy(0, 0, "Hello\nHello\n\tHello")
-c.printxy(36, 24, "Hello")
+c.writexy(0, 0, "Hello\nHello\n\tHello")
+c.text_color = xyzw_f{ 1, 0, 0, 1}
+c.writexy(10, 10, "Here")
+c.text_color = xyzw_f{ 0, 0, 1, 1}
+c.writexy(39, 10, "!!")
+c.writexy(36, 24, "Hello")
+c.locatexy(10, 10)
+c.text_color = xyzw_f{ 0, 1, 0, 1}
+c.write("Hereafter")
+
 while c.running:
     //c.rnd_screen()
     c.update()
