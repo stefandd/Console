@@ -69,25 +69,8 @@ class console:
     do_client_updates_ = false
     ignore_arg_err_ = false
 
-    def clearall():
-        let num_cells = num_cells_x*num_cells_y
-        text_c1buffer = map(num_cells):
-                            text_color
-        text_c2buffer = map(num_cells):
-                            background_color
-        text_rbuffer = map(num_cells):
-                            32
-        cursor_pos_x, cursor_pos_y = 0, 0
-
-    def rnd_screen():
-        let num_cells = num_cells_x*num_cells_y
-        text_c1buffer = map(num_cells):
-                            xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
-        text_c2buffer = map(num_cells):
-                            xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
-        text_rbuffer = map(num_cells):
-                        32 + rnd(64)
-
+    //------------------ class internal functions
+    
     def error_(msg):
             print msg // nothing else for now
                     
@@ -152,6 +135,15 @@ class console:
         border_y_px_ = int(scale_y * border_cells_y * fontheight)
         gl_set_font_size(int(scale_y * fontheight + 0.5))
 
+    def check_col_row_(col, row):
+        if ignore_arg_err_ or (col >= 0 and col < num_cells_x and row >= 0 and row < num_cells_y):
+            return true
+        else:
+            error_("Illegal x, y operands: " + col + ", " + row)
+            return false
+
+    //------------------ management functions
+
     def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
         // init window
         border_x_px_ = border_cells_x * fontwidth_
@@ -163,7 +155,7 @@ class console:
         gl_set_font_size(fontheight)
         // recalc frame size in px
         fontwidth_ = gl_text_size(" ").x
-        clearall() // create empty buffer objects of size num_cells_x * num_cells_y
+        clr() // create empty buffer objects of size num_cells_x * num_cells_y
         running = true
 
     def update():
@@ -173,14 +165,9 @@ class console:
         else:
             running = false
 
-    def check_col_row_(col, row):
-        if ignore_arg_err_ or (col >= 0 and col < num_cells_x and row >= 0 and row < num_cells_y):
-            return true
-        else:
-            error_("Illegal x, y operands: " + col + ", " + row)
-            return false
+    //------------------ print functions
 
-    def printxy_print_(col, row, str): // operands of col row must be checked before this is called; should also not call on empty strings
+    def printxy_print_(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         var p1_text_rbuffer:[int] = []
         var p1_text_c1buffer:[xyzw_f] = []
         var p1_text_c2buffer:[xyzw_f] = []
@@ -193,7 +180,7 @@ class console:
         let insertpos_buffer_idx = ulc_buffer_idx + col + num_cells_x * row
         var curr_col, curr_row = col, row
         var add_chr, add_chr_tot = 0, 0
-        let chr_vec = string_to_unicode(str)
+        let chr_vec = string_to_unicode(s)
         if chr_vec:
             if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
                 p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
@@ -273,19 +260,50 @@ class console:
         else:
             return false
 
-    def writexy(col, row, str): // operands of col row must be checked before this is called; should also not call on empty strings
-        if not check_col_row_(col, row):
-            return
-        printxy_print_(col, row, str)
+    def writexy(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
+        if not check_col_row_(col, row): return
+        printxy_print_(col, row, s)
         
-    def write(str): // operands of col row must be checked before this is called; should also not call on empty strings
-        printxy_print_(cursor_pos_x, cursor_pos_y, str)
+    def write(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
+        printxy_print_(cursor_pos_x, cursor_pos_y, s)
         
-    def writeln(str): // operands of col row must be checked before this is called; should also not call on empty strings
-        printxy_print_(cursor_pos_x, cursor_pos_y, str + "\n")
+    def writeln(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
+        printxy_print_(cursor_pos_x, cursor_pos_y, s + "\n")
         
-    def locatexy(col, row):
-        if not check_col_row_(col, row):
-            return
+    def gotoxy(col:int, row:int):
+        if not check_col_row_(col, row): return
         cursor_pos_x, cursor_pos_y = col, row
+
+    def wherexy():
+        return cursor_pos_x, cursor_pos_y
+
+    def clreol():
+        let base_idx = ulc_buffer_idx + cursor_pos_x + num_cells_x * cursor_pos_y
+        for (num_cells_x - cursor_pos_x) i:
+            text_rbuffer[base_idx + i] = 32
+            text_c1buffer[base_idx + i] = text_color
+            text_c2buffer[base_idx + i] = background_color
+
+    def clr():
+        let num_cells = num_cells_x*num_cells_y
+        text_c1buffer = map(num_cells): text_color
+        text_c2buffer = map(num_cells): background_color
+        text_rbuffer = map(num_cells): 32
+        ulc_buffer_idx = 0
+        cursor_pos_x, cursor_pos_y = 0, 0
         
+    def rnd_screen():
+        let num_cells = num_cells_x*num_cells_y
+        text_c1buffer = map(num_cells): xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
+        text_c2buffer = map(num_cells): xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
+        text_rbuffer = map(num_cells):  32 + rnd(64)
+        ulc_buffer_idx = 0
+        cursor_pos_x, cursor_pos_y = 0, 0
+
+    def putchar(col:int, row:int, c:int):
+        if not check_col_row_(col, row): return
+        text_rbuffer[ulc_buffer_idx + col + num_cells_x * row] = c
+
+    def getchar(col:int, row:int) -> int:
+        if not check_col_row_(col, row): return
+        return text_rbuffer[ulc_buffer_idx + col + num_cells_x * row]

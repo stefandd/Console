@@ -14,9 +14,15 @@ c.writexy(10, 10, "Here")
 c.text_color = xyzw_f{ 0, 0, 1, 1}
 c.writexy(39, 10, "!!")
 c.writexy(36, 24, "Hello")
-c.locatexy(10, 10)
+c.gotoxy(10, 10)
 c.text_color = xyzw_f{ 0, 1, 0, 1}
 c.write("Hereafter")
+
+c.rnd_screen()
+c.gotoxy(10, 10)
+c.write("!")
+c.clreol()
+c.putchar(9, 10, c.getchar(10,10))
 
 while c.running:
     //c.rnd_screen()
