@@ -226,6 +226,14 @@ class console:
                 curr_col = 0
                 curr_row++
             add_chr_tot += add_chr
+        // additional spaces for any newly started row to prefill the buffer full rows
+        if curr_row > row:
+                for (num_cells_x - curr_col):
+                    n_text_rbuffer.push(32)
+                    n_text_c1buffer.push(text_color)
+                    n_text_c2buffer.push(background_color)
+                add_chr_tot += num_cells_x - curr_col
+        // decide how to modify the class buffers
         if insertpos_buffer_idx + add_chr_tot > text_rbuffer.length: // can we just overwrite the current buffers with the new text?
             text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
             text_c1buffer = append(p1_text_c1buffer, n_text_c1buffer)
