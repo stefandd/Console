@@ -25,3 +25,4 @@ while c.running:
         print "\t rectsize_xy_: " + c.rectsize_xy_
         print "\t fontheight: " + int(c.scale_x * c.fontheight + 0.5)
         print "----"
+        print binary_search(["Stefan"], "fa")

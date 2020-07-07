@@ -1,7 +1,7 @@
 import std
 import gl
 
-def string_search(s:string, pat:string) -> int: // slow brute force
+def string_find(s:string, pat:string) -> int: // slow brute force
     //let a:int, b:int = 1, 2
     //let N:int, M:int = s.length, pat.length
     let N:int = s.length
@@ -27,6 +27,7 @@ def string_replace(s:string, search:string, replace:string) -> string:
     return s
 
 class console:
+    running = false
     fontheight:int = 20
     line_height:int = 20
     num_cells_x:int = 40
@@ -39,7 +40,6 @@ class console:
     border_show = false
     text_color = xyzw_f{0.0, 0.0, 0.0, 1.0}
     background_color = xyzw_f{0.2, 0.2, 1.0, 1.0}
-    autoscroll = true
     tab_num_spaces:int = 4
     tab_stops:[int] = [1, 11, 21, 31]
     ulc_buffer_idx:int = 0
@@ -56,7 +56,6 @@ class console:
     last_key_pressed = ""
     key_is_down = false
     input_start_lpointer:int = 1
-    running = true
     window_xy_ = xy_i{0, 0}
     fontwidth_:int = 20
     border_x_px_:int = 40
@@ -85,7 +84,7 @@ class console:
         text_c2buffer = map(num_cells):
                             xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
         text_rbuffer = map(num_cells):
-                        48 + rnd(75)
+                        32 + rnd(64)
                     
     def textdraw_():
         // draw screen characters
@@ -97,7 +96,7 @@ class console:
                 // background cell
                 gl_color(text_c2buffer[bufferidx])
                 gl_rect(this.rectsize_xy_)
-                if curr_chr != 32:
+                if curr_chr != 32: // speed boost in sparse texts
                     // foreground text
                     gl_color(text_c1buffer[bufferidx])
                     gl_text(unicode_to_string([curr_chr]))
@@ -161,6 +160,7 @@ class console:
         fontwidth_ = gl_text_size(" ").x
         // set up text buffer
         clearall()
+        running = true
 
     def update():
         if gl_frame() and gl_button("escape") != 1:
@@ -179,41 +179,58 @@ class console:
                 rstr += c
         return rstr
 
-    /*
-    def printxy_print_(col, row, row_max, str):
-        let lb_pos, _ = utf8.find(str, '\n', 1, true)
-        var second_part:string = ""
-        if lb_pos:
-            //.sub(s,i,j) extracts a piece of the string s, from the i-th to the j-th character inclusive.
-            // split string in parts of before and after the \n 
-            second_part = utf8.sub(str, lb_pos+1, -1)
-            str = utf8.sub(str, 1, lb_pos-1)
-        // when we arrive here, the string str has no more \n line breaks. we use the wrap routine to determine in which column it s
-        let printlines = self:__wraptext(col, row, str)
-        let num_printlines = #printlines
-        // make sure that there are no nil rows in the text/color buffer object // fill any such gaps with blank strings
-        // write new lines
-        let cur_pos_col, cur_pos_row = col, row
-        for k = 1, num_printlines:
-            let insert_str = printlines[k]
-            let len_insert_str = utf8.len(insert_str)
-            let cur_row_idx = self.ulc_buffer_idx + cur_pos_row - 1
-            if cur_row_idx >= 1:                
-                // write new text, color row
-                for i = cur_pos_col, cur_pos_col + len_insert_str - 1:
-                    let charpos = i - cur_pos_col + 1
-                    self.text_rbuffer[cur_row_idx][i] = utf8.sub(insert_str, charpos, charpos)
-                    self.text_cbuffer[cur_row_idx][i][1] = self.text_color[1]
-                    self.text_cbuffer[cur_row_idx][i][2] = self.text_color[2]
-                    self.text_cbuffer[cur_row_idx][i][3] = self.text_color[3]                
-                if cur_pos_col + len_insert_str > self.number_cells_x:
-                    cur_pos_col = 1
-                    cur_pos_row = cur_pos_row + 1
-                else
-                    cur_pos_col = cur_pos_col + len_insert_str                
-                self.cursor_pos_x = cur_pos_col // save the current cursor x position globally
-                self.cursor_pos_y = cur_pos_row // save the current cursor y position globally
-        // then, the remainder (second_part) will be recursively printed in the row below
-        if second_part: // and utf8.len(second_part) > 0: // we need to allow a trailing '\n'
-            self:__printxy_print(1, cur_pos_row + 1, cur_pos_row + 1, second_part) // recursive call of this routine with the remainder (which may contain more \n chars
-    */
+    def printxy_print_(col, row, str): // operands of col row must be checked before this is called; should also not call on empty strings
+        let chr_vec = string_to_unicode(str)
+        var p1_text_rbuffer:[int] = []
+        var p1_text_c1buffer:[xyzw_f] = []
+        var p1_text_c2buffer:[xyzw_f] = []
+        let p2_text_rbuffer:[int] = []
+        let p2_text_c1buffer:[xyzw_f] = []
+        let p2_text_c2buffer:[xyzw_f] = []        
+        let n_text_rbuffer:[int] = []
+        let n_text_c1buffer:[xyzw_f] = []
+        let n_text_c2buffer:[xyzw_f] = []
+        let insertpos_buffer_idx = ulc_buffer_idx + col + num_cells_x * row
+        let curr_col, curr_row = col, row
+        var add_chr, add_chr_tot = 0, 0
+        if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
+            p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
+            p1_text_c1buffer = slice(text_c1buffer, 0, insertpos_buffer_idx)
+            p1_text_c2buffer = slice(text_c2buffer, 0, insertpos_buffer_idx)
+        for (chr_vec) chr:
+            // filter special characters
+            add_chr = 0
+            if chr == 9: // \t
+                for (tab_num_spaces):
+                    n_text_rbuffer.push(32)
+                    n_text_c1buffer.push(text_color)
+                    n_text_c2buffer.push(background_color)
+                add_chr += tab_num_spaces
+            elif chr == 10: // \n
+                for (num_cells_x - curr_col):
+                    n_text_rbuffer.push(32)
+                    n_text_c1buffer.push(text_color)
+                    n_text_c2buffer.push(background_color)
+                add_chr += num_cells_x - col
+            elif chr == 13: // \r
+                pass() // ignore
+            else:
+                n_text_rbuffer.push(chr)
+                n_text_c1buffer.push(text_color)
+                n_text_c2buffer.push(background_color)
+                add_chr++
+            // advance cursor position
+            if curr_col + add_chr < num_cells_x:
+                curr_col += add_chr
+            else:
+                curr_col = 0
+                curr_row++
+            add_chr_tot += add_chr
+        if insertpos_buffer_idx + add_chr_tot > text_rbuffer.length: // can we just overwrite the current buffers with the new text?
+            text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
+            text_c1buffer = append(p1_text_c1buffer, n_text_c1buffer)
+            text_c2buffer = append(p1_text_c2buffer, n_text_c2buffer)
+            //ulc_buffer_idx += ?
+        else:
+            pass()
+            
