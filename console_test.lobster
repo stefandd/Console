@@ -5,8 +5,9 @@ let c:console = console{}
 var FPS_counter, FPS_deltas = 0, 0.0
 var t0 = gl_time()
 
-c.init("Test1", "data/fonts/Square/Square.ttf", gl_window_init_no_vsync)
+c.init("Test1", "data/fonts/PetMe/PetMe.ttf", gl_window_init_no_vsync)
 
+c.writexy(0, 0, "Hello")
 c.text_color = xyzw_f{ 1, 1, 0, 1}
 c.writexy(0, 0, "Hello\nHello\n\tHello")
 c.text_color = xyzw_f{ 1, 0, 0, 1}
@@ -18,14 +19,46 @@ c.gotoxy(10, 10)
 c.text_color = xyzw_f{ 0, 1, 0, 1}
 c.write("Hereafter")
 
-c.rnd_screen()
+while c.running:
+    c.update()
+
+c.running = true
+//c.rnd_screen()
 c.gotoxy(10, 10)
 c.write("!")
 c.clreol()
 c.putchar(9, 10, c.getchar(10,10))
+c.putchar(11, 10, c.getchar(10,10))
 
 while c.running:
-    //c.rnd_screen()
+    c.update()
+
+//let teststr = "▁▂▃▄▅▆▇█◣▁♠♣♥♦○●░▒▓█♠♣♥♦○●░▒▓█▁▂▃▄▅▆▇█◣▁"
+let teststr = "0123456789012345678901234567890123456789"
+c.clr()    
+FPS_counter, FPS_deltas = 0, 0.0
+c.running = true
+while c.running:
+    c.gotoxy(0, 0)
+    for (25) i:
+        c.text_color = xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1}
+        //c.background_color = xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1}
+        //c.writexy(0, i, teststr)
+        c.write(teststr)
+        print "debug pos: " + "cylce " + i + ", " + c.cursor_pos_x + ", " + c.cursor_pos_y
+        print "debug length: " + c.text_rbuffer.length
+    c.update()
+    FPS_deltas += gl_delta_time()
+    FPS_counter++
+    // stats (turn off vsync to measure)
+    if gl_time()-t0 > 2: // only every 2 secs
+        print "avg. FPS: " + FPS_counter/FPS_deltas
+        t0 = gl_time()
+        FPS_counter, FPS_deltas = 0, 0.0
+
+c.running = true
+while c.running:
+    c.rnd_screen()
     c.update()
     FPS_deltas += gl_delta_time()
     FPS_counter++

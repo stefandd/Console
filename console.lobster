@@ -249,11 +249,11 @@ class console:
                     // here we assume autoscroll
                     ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
                     cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1 // update cursor position
-                        
                 else:
                     text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
                     text_c1buffer = append(n_text_c1buffer, slice(text_c1buffer, add_chr_tot, -1))
                     text_c2buffer = append(n_text_c2buffer, slice(text_c2buffer, add_chr_tot, -1))
+                    cursor_pos_x, cursor_pos_y = curr_col, curr_row // update cursor position
             assert text_rbuffer.length % num_cells_x == 0
             assert text_rbuffer.length == text_c1buffer.length and text_rbuffer.length == text_c2buffer.length
             return true
@@ -263,12 +263,17 @@ class console:
     def writexy(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         if not check_col_row_(col, row): return
         printxy_print_(col, row, s)
+        //print "Debug pos after writexy: " + cursor_pos_x + ", " + cursor_pos_y
         
     def write(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         printxy_print_(cursor_pos_x, cursor_pos_y, s)
+        //print "Calling writexy(" + cursor_pos_x + ", " + cursor_pos_y + ", " + "..)"
+        //writexy(cursor_pos_x, cursor_pos_y, s)
+        //print "Debug pos after write: " + cursor_pos_x + ", " + cursor_pos_y
         
     def writeln(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         printxy_print_(cursor_pos_x, cursor_pos_y, s + "\n")
+        //print "Debug pos after writeln: " + cursor_pos_x + ", " + cursor_pos_y
         
     def gotoxy(col:int, row:int):
         if not check_col_row_(col, row): return
