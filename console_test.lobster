@@ -7,6 +7,7 @@ var t0 = gl_time()
 
 c.init("Test1", "data/fonts/PetMe/PetMe.ttf", gl_window_init_no_vsync)
 
+/*
 c.writexy(0, 0, "Hello")
 c.text_color = xyzw_f{ 1, 1, 0, 1}
 c.writexy(0, 0, "Hello\nHello\n\tHello")
@@ -33,20 +34,19 @@ c.putchar(11, 10, c.getchar(10,10))
 while c.running:
     c.update()
 
+
 //let teststr = "▁▂▃▄▅▆▇█◣▁♠♣♥♦○●░▒▓█♠♣♥♦○●░▒▓█▁▂▃▄▅▆▇█◣▁"
 let teststr = "0123456789012345678901234567890123456789"
 c.clr()    
 FPS_counter, FPS_deltas = 0, 0.0
+
 c.running = true
 while c.running:
-    c.gotoxy(0, 0)
-    for (25) i:
-        c.text_color = xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1}
-        //c.background_color = xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1}
-        //c.writexy(0, i, teststr)
-        c.write(teststr)
-        print "debug pos: " + "cylce " + i + ", " + c.cursor_pos_x + ", " + c.cursor_pos_y
-        print "debug length: " + c.text_rbuffer.length
+    c.text_color = xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1}
+    //c.background_color = xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1}
+    //c.writexy(0, i, teststr)
+    c.writexy(0, 24, teststr)
+    //print "debug pos: " + c.cursor_pos_x + ", " + c.cursor_pos_y
     c.update()
     FPS_deltas += gl_delta_time()
     FPS_counter++
@@ -55,8 +55,11 @@ while c.running:
         print "avg. FPS: " + FPS_counter/FPS_deltas
         t0 = gl_time()
         FPS_counter, FPS_deltas = 0, 0.0
+        print "debug buffer length: " + c.text_rbuffer.length
 
 c.running = true
+*/
+c.text_color = xyzw_f{ 1, 1, 1, 1}
 while c.running:
     c.rnd_screen()
     c.update()

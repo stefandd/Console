@@ -50,6 +50,7 @@ class console:
     cursor_blink_time:float = 0.5
     cursor_pos_x:int = 1
     cursor_pos_y:int = 1
+    autoscroll = true
     wait_for_keypress = false
     input_mode_on = false
     input_text = ""
@@ -78,12 +79,12 @@ class console:
         // draw screen characters
         var bufferidx = ulc_buffer_idx
         gl_translate(xy_f{border_x_px_, border_y_px_})
-        for (num_cells_y) y:
-            for (num_cells_x) x:
+        for (num_cells_y):
+            for (num_cells_x):
                 let curr_chr = text_rbuffer[bufferidx]
                 // background cell
                 gl_color(text_c2buffer[bufferidx])
-                gl_rect(this.rectsize_xy_)
+                gl_rect(rectsize_xy_)
                 if curr_chr != 32: // speed boost in sparse texts
                     // foreground text
                     gl_color(text_c1buffer[bufferidx])
@@ -141,29 +142,6 @@ class console:
         else:
             error_("Illegal x, y operands: " + col + ", " + row)
             return false
-
-    //------------------ management functions
-
-    def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
-        // init window
-        border_x_px_ = border_cells_x * fontwidth_
-        border_y_px_ = border_cells_y * fontheight
-        let init_xs, init_ys = num_cells_x * fontwidth_ + 2 * border_x_px_, num_cells_y * line_height + 2 * border_y_px_
-        fatal(gl_window(title, init_xs, init_ys, flags))
-        // init font
-        check(gl_set_font_name(font_path), "can\'t load font!")
-        gl_set_font_size(fontheight)
-        // recalc frame size in px
-        fontwidth_ = gl_text_size(" ").x
-        clr() // create empty buffer objects of size num_cells_x * num_cells_y
-        running = true
-
-    def update():
-        if gl_frame() and gl_button("escape") != 1:
-            running = true
-            draw_()
-        else:
-            running = false
 
     //------------------ print functions
 
@@ -233,27 +211,26 @@ class console:
                     text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
                     text_c1buffer = append(p1_text_c1buffer, n_text_c1buffer)
                     text_c2buffer = append(p1_text_c2buffer, n_text_c2buffer)
-                    // here we assume autoscroll
-                    ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
-                    cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1 // update cursor position
                 else:
                     text_rbuffer = append(p1_text_rbuffer, append(n_text_rbuffer, slice(text_rbuffer, insertpos_buffer_idx + add_chr_tot, -1)))
                     text_c1buffer = append(p1_text_c1buffer, append(n_text_c1buffer, slice(text_c1buffer, insertpos_buffer_idx + add_chr_tot, -1)))
                     text_c2buffer = append(p1_text_c2buffer, append(n_text_c2buffer, slice(text_c2buffer, insertpos_buffer_idx + add_chr_tot, -1)))
-                    cursor_pos_x, cursor_pos_y = curr_col, curr_row // update cursor position
             else:
                 if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
                     text_rbuffer = n_text_rbuffer
                     text_c1buffer = n_text_c1buffer
                     text_c2buffer = n_text_c2buffer
-                    // here we assume autoscroll
-                    ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
-                    cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1 // update cursor position
                 else:
                     text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
                     text_c1buffer = append(n_text_c1buffer, slice(text_c1buffer, add_chr_tot, -1))
                     text_c2buffer = append(n_text_c2buffer, slice(text_c2buffer, add_chr_tot, -1))
-                    cursor_pos_x, cursor_pos_y = curr_col, curr_row // update cursor position
+            // update cursor position
+            if (insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length) and autoscroll: // can we just overwrite the current buffers with the new text?
+                ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
+                cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1
+            else:
+                cursor_pos_x, cursor_pos_y = curr_col, curr_row
+            // more tests
             assert text_rbuffer.length % num_cells_x == 0
             assert text_rbuffer.length == text_c1buffer.length and text_rbuffer.length == text_c2buffer.length
             return true
@@ -312,3 +289,32 @@ class console:
     def getchar(col:int, row:int) -> int:
         if not check_col_row_(col, row): return
         return text_rbuffer[ulc_buffer_idx + col + num_cells_x * row]
+
+    //------------------ management functions
+
+    def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
+        // init window
+        border_x_px_ = border_cells_x * fontwidth_
+        border_y_px_ = border_cells_y * fontheight
+        let init_xs, init_ys = num_cells_x * fontwidth_ + 2 * border_x_px_, num_cells_y * line_height + 2 * border_y_px_
+        fatal(gl_window(title, init_xs, init_ys, flags))
+        // init font
+        check(gl_set_font_name(font_path), "can\'t load font!")
+        gl_set_font_size(fontheight)
+        // recalc frame size in px
+        fontwidth_ = gl_text_size(" ").x
+        clr() // create empty buffer objects of size num_cells_x * num_cells_y
+        running = true
+
+    def sleep(t):
+        let t0 = gl_time()
+        while gl_frame() and gl_time() -  t0 < t:
+            draw_()
+
+    def update():
+        if gl_frame() and gl_button("escape") != 1:
+            running = true
+            draw_()
+        else:
+            running = false
+
