@@ -5,7 +5,8 @@ let c:console = console{}
 var FPS_counter, FPS_deltas = 0, 0.0
 var t0 = gl_time()
 
-c.init("Test1", "data/fonts/PetMe/PetMe.ttf", gl_window_init_no_vsync)
+//c.init("Test1", "data/fonts/PetMe/PetMe.ttf", gl_window_init_no_vsync)
+c.init("Test1", "data/fonts/Px437_IBM/Px437_IBM_BIOS.ttf", gl_window_init_no_vsync)
 
 c.writexy(0, 0, "Hello")
 c.text_color = xyzw_f{ 1, 1, 0, 1}
@@ -33,9 +34,8 @@ c.putchar(11, 10, c.getchar(10,10))
 while c.running:
     c.update()
 
-
-//let teststr = "▁▂▃▄▅▆▇█◣▁♠♣♥♦○●░▒▓█♠♣♥♦○●░▒▓█▁▂▃▄▅▆▇█◣▁"
-let teststr = "0123456789012345678901234567890123456789"
+let teststr = "▁▂▃▄▅▆▇█◣▁♠♣♥♦○●░▒▓█♠♣♥♦○●░▒▓█▁▂▃▄▅▆▇█◣▁"
+//let teststr = "0123456789012345678901234567890123456789"
 c.clr()    
 FPS_counter, FPS_deltas = 0, 0.0
 c.running = true
@@ -58,6 +58,7 @@ while c.running:
 
 c.running = true
 c.text_color = xyzw_f{ 1, 1, 1, 1}
+
 while c.running:
     c.rnd_screen()
     c.update()
