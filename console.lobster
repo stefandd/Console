@@ -74,9 +74,6 @@ class console:
 
     //------------------ class internal functions
     
-    def error_(msg):
-            print msg // nothing else for now
-                    
     def textdraw_():
         // draw screen characters
         var bufferidx = ulc_buffer_idx
@@ -144,7 +141,7 @@ class console:
         if ignore_arg_err_ or (col >= 0 and col < num_cells_x and row >= 0 and row < num_cells_y):
             return true
         else:
-            error_("Illegal x, y operands: " + col + ", " + row)
+            print "Illegal x, y operands: " + col + ", " + row
             return false
 
     //------------------ print functions
@@ -325,17 +322,8 @@ class console:
             
 //-------- Region def + functions ---------
 
-class region:
-
-    text_rbuffer:[int] = []
-    text_c1buffer:[xyzw_f] = []
-    text_c2buffer:[xyzw_f] = []
-    extend_x = 0
-    extend_y = 0
-    alpha_chr = 32
-
-    // cp437 translation table, needed for the REXPaint import function in cp437_DOSLatinUS order
-    cp437_to_unicode:[int] = [
+// cp437 translation table, needed for the REXPaint import function in cp437_DOSLatinUS order
+let cp437_to_unicode:[int] = [
     0x0000 , // NULL
     0x0001 , // START OF HEADING
     0x0002 , // START OF TEXT
@@ -594,6 +582,16 @@ class region:
     0x00a0 , // NO-BREAK SPACE
     ]
 
+
+class region:
+
+    text_rbuffer:[int] = []
+    text_c1buffer:[xyzw_f] = []
+    text_c2buffer:[xyzw_f] = []
+    extend_x = 0
+    extend_y = 0
+    alpha_chr = 32
+
     def fromREXPaint(REXPaint_csv):    
         //read_file(file:string, textmode:int = 0) -> string?
         let content = read_file(REXPaint_csv, 1)
@@ -669,27 +667,26 @@ class region:
                     c.text_c1buffer[tgt_idx] = text_c1buffer[src_idx]
                     c.text_c2buffer[tgt_idx] = text_c2buffer[src_idx]
 
-    /*
-    def scaledcopy(scaling_factor):
-        if scaling_factor < 0.1 or scaling_factor > 10 :
-            tconsole:__error("Error in tregion-scaledcopy: scalingfactor not within 0.1 .. 10.0")
+    def scaledcopy(tgt_extend_x, tgt_extend_y) -> region?:
+        if tgt_extend_x < 2 or tgt_extend_y < 2:
+            print "Error: illegal operands to scaledcopy!"
             return
-        local new_extend_x = math.floor(scaling_factor * self.extend_x + 0.5)
-        local new_extend_y = math.floor(scaling_factor * self.extend_y + 0.5)
-        local txt_table, col_table = {}, {}
-        if new_extend_x < 1 or new_extend_y < 1 :
-            return tregion() // if too small, return empty tregion object
-        for i = 1, new_extend_y :
-            txt_table[i] = {}
-            col_table[i] = {}
-            for j = 1, new_extend_x : 
-                local orig_x = math.ceil(((j - 0.5)/ new_extend_x) * self.extend_x)
-                local orig_y = math.ceil(((i - 0.5)/ new_extend_y) * self.extend_y)
-                txt_table[i][j] = self.txt_table[orig_y][orig_x]
-                col_table[i][j] = { self.col_table[orig_y][orig_x][1],
-                                    self.col_table[orig_y][orig_x][2],
-                                    self.col_table[orig_y][orig_x][3] }
-        local scaled_treg = tregion(txt_table, col_table) // create new tregion obj
-        scaled_treg.alpha_chr = self.alpha_chr
-        return scaled_treg
-*/
+        let t2s_sc_x = float(extend_x) / tgt_extend_x // target-to-source (inverse) scaling factor
+        let t2s_sc_y = float(extend_y) / tgt_extend_y
+        let scopy = region{}
+        scopy.extend_x = tgt_extend_x
+        scopy.extend_y = tgt_extend_y
+        scopy.alpha_chr = alpha_chr
+        let bufferlimit = text_rbuffer.length
+        //print "Source dimensions: " + extend_x + ", " + extend_y
+        //print "Target dimensions: " + tgt_extend_x + ", " + tgt_extend_y
+        //print "Debug: scales: " + t2s_sc_x + ", " + t2s_sc_y
+        for (tgt_extend_y) i:
+            for (tgt_extend_x) j:
+                //print "Debug: tgt vec: " + j + ", " + i + ",  src vec: " + int(t2s_sc_x * j + 0.5) + ", " + int(t2s_sc_y * i + 0.5)
+                let src_idx = clamp(round(t2s_sc_y * i) * extend_x + round(t2s_sc_x * j), 0, bufferlimit - 1)
+                scopy.text_rbuffer.push(text_rbuffer[src_idx])
+                scopy.text_c1buffer.push(text_c1buffer[src_idx])
+                scopy.text_c2buffer.push(text_c2buffer[src_idx])
+        assert scopy.text_rbuffer.length == tgt_extend_x * tgt_extend_y
+        return scopy
