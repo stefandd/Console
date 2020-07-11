@@ -1,7 +1,7 @@
 import std
 import gl
-    
-// ----------------------------
+
+// -------- utility functions ------------
 
 def string_find(s:string, pat:string) -> int: // slow brute force
     let N:int = s.length
@@ -25,301 +25,7 @@ def string_replace(s:string, search:string, replace:string) -> string:
             else:
                 return substring(s, 0, i) + replace + string_replace(substring(s, i + srchlen, -1), search, replace)
     return s
-
-// ----------------------------
-
-class console:
-    running = false
-    fontheight:int = 20
-    line_height:int = 20
-    num_cells_x:int = 40
-    num_cells_y:int = 25
-    border_cells_x:int = 3
-    border_cells_y:int = 2
-    scale_x:float = 1.0
-    scale_y:float = 1.0
-    border_color = xyzw_f{1.0, 0.3, 0.3, 1.0}
-    border_show = false
-    text_color = xyzw_f{0.0, 0.0, 0.0, 1.0}
-    background_color = xyzw_f{0.2, 0.2, 1.0, 1.0}
-    tab_num_spaces:int = 4
-    tab_stops:[int] = [1, 11, 21, 31]
-    ulc_buffer_idx:int = 0
-    text_rbuffer:[int] = []
-    text_c1buffer:[xyzw_f] = []
-    text_c2buffer:[xyzw_f] = []
-    cursor_chr = "_"   
-    cursor_blink_time:float = 0.5
-    cursor_pos_x:int = 1
-    cursor_pos_y:int = 1
-    autoscroll = true
-    wait_for_keypress = false
-    input_mode_on = false
-    input_text = ""
-    last_key_pressed = ""
-    key_is_down = false
-    input_start_lpointer:int = 1
-    window_xy_ = xy_i{0, 0}
-    fontwidth_:int = 20
-    ulc_x_px_:int = 0
-    ulc_y_px_:int = 0
-    rectsize_xy_ = xy_f{0, 0}
-    dcell_x_ = xy_f{0, 0} // single char translation
-    dcr_ = xy_f{0, 0} //  cr translation    
-    input_backspace_semaphore_ = false
-    time_:float = 0.0
-    update_clients_ = []
-    do_client_updates_ = false
-    ignore_arg_err_ = false
-
-    //------------------ class internal functions
     
-    def textdraw_():
-        // draw screen characters
-        var bufferidx = ulc_buffer_idx
-        gl_translate(xy_f{ulc_x_px_, ulc_y_px_})
-        for (num_cells_y):
-            for (num_cells_x):
-                let curr_chr = text_rbuffer[bufferidx]
-                // background cell
-                gl_color(text_c2buffer[bufferidx])
-                gl_rect(rectsize_xy_)
-                if curr_chr != 32: // speed boost in sparse texts
-                    // foreground text
-                    gl_color(text_c1buffer[bufferidx])
-                    gl_text(unicode_to_string([curr_chr]))
-                gl_translate(dcell_x_)
-                bufferidx++
-            gl_translate(dcr_)
-                
-    def draw_():
-        if border_show:
-            gl_clear(border_color)
-            gl_color(background_color)
-        else:
-            gl_clear(background_color)
-        //draw__behind()
-        //self:draw__sprites_background()
-        textdraw_()
-        //self:draw__sprites_foreground()
-        //draw__in_front()
-            
-    def rescale_():
-        window_xy_ = gl_window_size() // current window size
-        var orig_width, orig_height = num_cells_x * fontwidth_, num_cells_y * line_height // our space needs in the current font size and line_height
-        if border_show:
-            orig_width += 2 * border_cells_x * fontwidth_
-            orig_height += 2 * border_cells_y * line_height
-        scale_x, scale_y = float(window_xy_.x) / orig_width, float(window_xy_.y) / orig_height // resulting scaling factors
-        // recalculate the upper left corner position in pixels to be centered in window
-        //ulc_x_px_, ulc_y_px_ = 0, 0
-        if scale_x < scale_y:
-            scale_y = scale_x
-            if border_show:
-                ulc_x_px_ = int(scale_x * border_cells_x * fontwidth_)
-                ulc_y_px_ = int(scale_y * border_cells_y * fontheight + (window_xy_.y - scale_y * orig_height)/2.0)
-            else:
-                ulc_x_px_ = 0
-                ulc_y_px_ = int((window_xy_.y - scale_y * orig_height)/2.0)
-        else:
-            scale_x = scale_y
-            if border_show:
-                ulc_x_px_ = int(scale_x * border_cells_x * fontwidth_ + (window_xy_.x - scale_x * orig_width)/2.0)
-                ulc_y_px_ = int(scale_y * border_cells_y * fontheight)
-            else:
-                ulc_x_px_ = int((window_xy_.x - scale_x * orig_width)/2.0)
-                ulc_y_px_ = 0
-        // precalculate the translation vectors and the textbox size
-        rectsize_xy_ = xy_f{ scale_x * fontwidth_, scale_y * line_height }
-        dcell_x_ = xy_f{ scale_x * fontwidth_, 0 }
-        dcr_ = xy_f{ -num_cells_x * scale_x * fontwidth_, scale_y * line_height }
-        // rescale the font
-        gl_set_font_size(int(scale_y * fontheight + 0.5))
-
-
-    def check_col_row_(col, row):
-        if ignore_arg_err_ or (col >= 0 and col < num_cells_x and row >= 0 and row < num_cells_y):
-            return true
-        else:
-            print "Illegal x, y operands: " + col + ", " + row
-            return false
-
-    //------------------ print functions
-
-    def printxy_print_(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
-        var p1_text_rbuffer:[int] = []
-        var p1_text_c1buffer:[xyzw_f] = []
-        var p1_text_c2buffer:[xyzw_f] = []
-        let p2_text_rbuffer:[int] = []
-        let p2_text_c1buffer:[xyzw_f] = []
-        let p2_text_c2buffer:[xyzw_f] = []        
-        let n_text_rbuffer:[int] = []
-        let n_text_c1buffer:[xyzw_f] = []
-        let n_text_c2buffer:[xyzw_f] = []
-        let insertpos_buffer_idx = ulc_buffer_idx + col + num_cells_x * row
-        var curr_col, curr_row = col, row
-        var add_chr, add_chr_tot = 0, 0
-        let chr_vec = string_to_unicode(s)
-        if chr_vec:
-            if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
-                p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
-                p1_text_c1buffer = slice(text_c1buffer, 0, insertpos_buffer_idx)
-                p1_text_c2buffer = slice(text_c2buffer, 0, insertpos_buffer_idx)
-            for (chr_vec) chr:
-                // filter special characters
-                add_chr = 0
-                if chr == 9: // \t
-                    for (tab_num_spaces):
-                        n_text_rbuffer.push(32)
-                        n_text_c1buffer.push(text_color)
-                        n_text_c2buffer.push(background_color)
-                    add_chr += tab_num_spaces
-                elif chr == 10: // \n
-                    for (num_cells_x - curr_col):
-                        n_text_rbuffer.push(32)
-                        n_text_c1buffer.push(text_color)
-                        n_text_c2buffer.push(background_color)
-                    add_chr += num_cells_x - curr_col
-                elif chr == 13: // \r
-                    pass() // ignore
-                else:
-                    n_text_rbuffer.push(chr)
-                    n_text_c1buffer.push(text_color)
-                    n_text_c2buffer.push(background_color)
-                    add_chr++
-                // advance cursor position
-                if curr_col + add_chr < num_cells_x:
-                    curr_col += add_chr
-                else:
-                    curr_col = 0
-                    curr_row++
-                add_chr_tot += add_chr
-            // additional spaces for any newly started row to prefill the buffer full rows
-            if curr_row > row:
-                    for (num_cells_x - curr_col):
-                        n_text_rbuffer.push(32)
-                        n_text_c1buffer.push(text_color)
-                        n_text_c2buffer.push(background_color)
-                    add_chr_tot += num_cells_x - curr_col
-            // the asserts are bug test
-            if curr_row != row:
-                assert (col + num_cells_x * row + add_chr_tot) % num_cells_x == 0
-                assert (insertpos_buffer_idx + add_chr_tot) % num_cells_x == 0            
-            // decide how to modify the class buffers
-            assert n_text_rbuffer.length == add_chr_tot
-            if insertpos_buffer_idx > 0:
-                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
-                    text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
-                    text_c1buffer = append(p1_text_c1buffer, n_text_c1buffer)
-                    text_c2buffer = append(p1_text_c2buffer, n_text_c2buffer)
-                else:
-                    text_rbuffer = append(p1_text_rbuffer, append(n_text_rbuffer, slice(text_rbuffer, insertpos_buffer_idx + add_chr_tot, -1)))
-                    text_c1buffer = append(p1_text_c1buffer, append(n_text_c1buffer, slice(text_c1buffer, insertpos_buffer_idx + add_chr_tot, -1)))
-                    text_c2buffer = append(p1_text_c2buffer, append(n_text_c2buffer, slice(text_c2buffer, insertpos_buffer_idx + add_chr_tot, -1)))
-            else:
-                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
-                    text_rbuffer = n_text_rbuffer
-                    text_c1buffer = n_text_c1buffer
-                    text_c2buffer = n_text_c2buffer
-                else:
-                    text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
-                    text_c1buffer = append(n_text_c1buffer, slice(text_c1buffer, add_chr_tot, -1))
-                    text_c2buffer = append(n_text_c2buffer, slice(text_c2buffer, add_chr_tot, -1))
-            // update cursor position
-            if (insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length) and autoscroll: // can we just overwrite the current buffers with the new text?
-                ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
-                cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1
-            else:
-                cursor_pos_x, cursor_pos_y = curr_col, curr_row
-            // more tests
-            assert text_rbuffer.length % num_cells_x == 0
-            assert text_rbuffer.length == text_c1buffer.length and text_rbuffer.length == text_c2buffer.length
-            return true
-        else:
-            return false
-
-    def writexy(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
-        if not check_col_row_(col, row): return
-        printxy_print_(col, row, s)
-        //print "Debug pos after writexy: " + cursor_pos_x + ", " + cursor_pos_y
-        
-    def write(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
-        printxy_print_(cursor_pos_x, cursor_pos_y, s)
-        //print "Debug pos after write: " + cursor_pos_x + ", " + cursor_pos_y
-        
-    def writeln(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
-        printxy_print_(cursor_pos_x, cursor_pos_y, s + "\n")
-        //print "Debug pos after writeln: " + cursor_pos_x + ", " + cursor_pos_y
-        
-    def gotoxy(col:int, row:int):
-        if not check_col_row_(col, row): return
-        cursor_pos_x, cursor_pos_y = col, row
-
-    def wherexy():
-        return cursor_pos_x, cursor_pos_y
-
-    def clreol():
-        let base_idx = ulc_buffer_idx + cursor_pos_x + num_cells_x * cursor_pos_y
-        for (num_cells_x - cursor_pos_x) i:
-            text_rbuffer[base_idx + i] = 32
-            text_c1buffer[base_idx + i] = text_color
-            text_c2buffer[base_idx + i] = background_color
-
-    def clr():
-        let num_cells = num_cells_x*num_cells_y
-        text_c1buffer = map(num_cells): text_color
-        text_c2buffer = map(num_cells): background_color
-        text_rbuffer = map(num_cells): 32
-        ulc_buffer_idx = 0
-        cursor_pos_x, cursor_pos_y = 0, 0
-        
-    def rnd_screen():
-        let num_cells = num_cells_x*num_cells_y
-        text_c1buffer = map(num_cells): xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
-        text_c2buffer = map(num_cells): xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
-        text_rbuffer = map(num_cells):  32 + rnd(64)
-        ulc_buffer_idx = 0
-        cursor_pos_x, cursor_pos_y = 0, 0
-
-    def putchar(col:int, row:int, c:int):
-        if not check_col_row_(col, row): return
-        text_rbuffer[ulc_buffer_idx + col + num_cells_x * row] = c
-
-    def getchar(col:int, row:int) -> int:
-        if not check_col_row_(col, row): return
-        return text_rbuffer[ulc_buffer_idx + col + num_cells_x * row]
-
-    //------------------ management functions
-
-    def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
-        // init window
-        var init_xs, init_ys = num_cells_x * fontwidth_, num_cells_y * line_height
-        if border_show:
-            init_xs += 2 * border_cells_x * fontwidth_
-            init_ys += 2 * border_cells_y * line_height
-        fatal(gl_window(title, init_xs, init_ys, flags))
-        // init font
-        check(gl_set_font_name(font_path), "can\'t load font!")
-        gl_set_font_size(fontheight)
-        // recalc frame size in px
-        fontwidth_ = gl_text_size(" ").x
-        rescale_()
-        clr() // create empty buffer objects of size num_cells_x * num_cells_y
-        running = true
-
-    def sleep(t):
-        let t0 = gl_time()
-        while gl_frame() and gl_time() -  t0 < t:
-            draw_()
-
-    def update():
-        if gl_frame() and gl_button("escape") != 1:
-            running = true
-            rescale_() // this also rescales the font
-            draw_()
-        else:
-            running = false
-            
 //-------- Region def + functions ---------
 
 // cp437 translation table, needed for the REXPaint import function in cp437_DOSLatinUS order
@@ -582,7 +288,6 @@ let cp437_to_unicode:[int] = [
     0x00a0 , // NO-BREAK SPACE
     ]
 
-
 class region:
 
     text_rbuffer:[int] = []
@@ -638,6 +343,7 @@ class region:
     def update(dt):
         pass() // empty by default
     
+    /* this function is now in class console
     def blit(c:console, col:int, row:int):
         var portion_x, portion_y = extend_x, extend_y
         var offset_x, offset_y = 0, 0
@@ -666,6 +372,7 @@ class region:
                     c.text_rbuffer[tgt_idx] = cur_chr
                     c.text_c1buffer[tgt_idx] = text_c1buffer[src_idx]
                     c.text_c2buffer[tgt_idx] = text_c2buffer[src_idx]
+    */
 
     def scaledcopy(tgt_extend_x, tgt_extend_y) -> region?:
         if tgt_extend_x < 2 or tgt_extend_y < 2:
@@ -690,3 +397,348 @@ class region:
                 scopy.text_c2buffer.push(text_c2buffer[src_idx])
         assert scopy.text_rbuffer.length == tgt_extend_x * tgt_extend_y
         return scopy
+
+//-------- console --------------------
+
+class console:
+    running = false
+    fontheight:int = 20
+    line_height:int = 20
+    num_cells_x:int = 40
+    num_cells_y:int = 25
+    border_cells_x:int = 3
+    border_cells_y:int = 2
+    scale_x:float = 1.0
+    scale_y:float = 1.0
+    border_color = xyzw_f{1.0, 0.3, 0.3, 1.0}
+    border_show = false
+    text_color = xyzw_f{0.0, 0.0, 0.0, 1.0}
+    background_color = xyzw_f{0.2, 0.2, 1.0, 1.0}
+    tab_num_spaces:int = 4
+    tab_stops:[int] = [1, 11, 21, 31]
+    ulc_buffer_idx:int = 0
+    text_rbuffer:[int] = []
+    text_c1buffer:[xyzw_f] = []
+    text_c2buffer:[xyzw_f] = []
+    cursor_chr = "_"   
+    cursor_blink_time:float = 0.5
+    cursor_pos_x:int = 1
+    cursor_pos_y:int = 1
+    autoscroll = true
+    wait_for_keypress = false
+    input_mode_on = false
+    input_text = ""
+    last_key_pressed = ""
+    key_is_down = false
+    input_start_lpointer:int = 1
+    window_xy_ = xy_i{0, 0}
+    fontwidth_:int = 20
+    ulc_x_px_:int = 0
+    ulc_y_px_:int = 0
+    rectsize_xy_ = xy_f{0, 0}
+    dcell_x_ = xy_f{0, 0} // single char translation
+    dcr_ = xy_f{0, 0} //  cr translation    
+    input_backspace_semaphore_ = false
+    time_:float = 0.0
+    update_clients_ = []
+    do_client_updates_ = false
+    ignore_arg_err_ = false
+
+    //------------------ class internal functions
+    
+    def textdraw_():
+        // draw screen characters
+        var bufferidx = ulc_buffer_idx
+        gl_translate(xy_f{ulc_x_px_, ulc_y_px_})
+        for (num_cells_y):
+            for (num_cells_x):
+                let curr_chr = text_rbuffer[bufferidx]
+                // background cell
+                gl_color(text_c2buffer[bufferidx])
+                gl_rect(rectsize_xy_)
+                if curr_chr != 32: // speed boost in sparse texts
+                    // foreground text
+                    gl_color(text_c1buffer[bufferidx])
+                    gl_text(unicode_to_string([curr_chr]))
+                gl_translate(dcell_x_)
+                bufferidx++
+            gl_translate(dcr_)
+                
+    def draw_():
+        if border_show:
+            gl_clear(border_color)
+            gl_color(background_color)
+        else:
+            gl_clear(background_color)
+        //draw__behind()
+        //self:draw__sprites_background()
+        textdraw_()
+        //self:draw__sprites_foreground()
+        //draw__in_front()
+            
+    def rescale_():
+        window_xy_ = gl_window_size() // current window size
+        var orig_width, orig_height = num_cells_x * fontwidth_, num_cells_y * line_height // our space needs in the current font size and line_height
+        if border_show:
+            orig_width += 2 * border_cells_x * fontwidth_
+            orig_height += 2 * border_cells_y * line_height
+        scale_x, scale_y = float(window_xy_.x) / orig_width, float(window_xy_.y) / orig_height // resulting scaling factors
+        // recalculate the upper left corner position in pixels to be centered in window
+        //ulc_x_px_, ulc_y_px_ = 0, 0
+        if scale_x < scale_y:
+            scale_y = scale_x
+            if border_show:
+                ulc_x_px_ = int(scale_x * border_cells_x * fontwidth_)
+                ulc_y_px_ = int(scale_y * border_cells_y * fontheight + (window_xy_.y - scale_y * orig_height)/2.0)
+            else:
+                ulc_x_px_ = 0
+                ulc_y_px_ = int((window_xy_.y - scale_y * orig_height)/2.0)
+        else:
+            scale_x = scale_y
+            if border_show:
+                ulc_x_px_ = int(scale_x * border_cells_x * fontwidth_ + (window_xy_.x - scale_x * orig_width)/2.0)
+                ulc_y_px_ = int(scale_y * border_cells_y * fontheight)
+            else:
+                ulc_x_px_ = int((window_xy_.x - scale_x * orig_width)/2.0)
+                ulc_y_px_ = 0
+        // precalculate the translation vectors and the textbox size
+        rectsize_xy_ = xy_f{ scale_x * fontwidth_, scale_y * line_height }
+        dcell_x_ = xy_f{ scale_x * fontwidth_, 0 }
+        dcr_ = xy_f{ -num_cells_x * scale_x * fontwidth_, scale_y * line_height }
+        // rescale the font
+        gl_set_font_size(int(scale_y * fontheight + 0.5))
+
+
+    def check_col_row_(col, row):
+        if ignore_arg_err_ or (col >= 0 and col < num_cells_x and row >= 0 and row < num_cells_y):
+            return true
+        else:
+            print "Illegal x, y operands: " + col + ", " + row
+            return false
+
+    //------------------ print functions
+
+    def printxy_print_(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
+        var p1_text_rbuffer:[int] = []
+        var p1_text_c1buffer:[xyzw_f] = []
+        var p1_text_c2buffer:[xyzw_f] = []
+        let p2_text_rbuffer:[int] = []
+        let p2_text_c1buffer:[xyzw_f] = []
+        let p2_text_c2buffer:[xyzw_f] = []        
+        let n_text_rbuffer:[int] = []
+        let n_text_c1buffer:[xyzw_f] = []
+        let n_text_c2buffer:[xyzw_f] = []
+        let insertpos_buffer_idx = ulc_buffer_idx + col + num_cells_x * row
+        var curr_col, curr_row = col, row
+        var add_chr, add_chr_tot = 0, 0
+        let chr_vec = string_to_unicode(s)
+        if chr_vec:
+            if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
+                p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
+                p1_text_c1buffer = slice(text_c1buffer, 0, insertpos_buffer_idx)
+                p1_text_c2buffer = slice(text_c2buffer, 0, insertpos_buffer_idx)
+            for (chr_vec) chr:
+                // filter special characters
+                add_chr = 0
+                if chr == 9: // \t
+                    for (tab_num_spaces):
+                        n_text_rbuffer.push(32)
+                        n_text_c1buffer.push(text_color)
+                        n_text_c2buffer.push(background_color)
+                    add_chr += tab_num_spaces
+                elif chr == 10: // \n
+                    for (num_cells_x - curr_col):
+                        n_text_rbuffer.push(32)
+                        n_text_c1buffer.push(text_color)
+                        n_text_c2buffer.push(background_color)
+                    add_chr += num_cells_x - curr_col
+                elif chr == 13: // \r
+                    pass() // ignore
+                else:
+                    n_text_rbuffer.push(chr)
+                    n_text_c1buffer.push(text_color)
+                    n_text_c2buffer.push(background_color)
+                    add_chr++
+                // advance cursor position
+                if curr_col + add_chr < num_cells_x:
+                    curr_col += add_chr
+                else:
+                    curr_col = 0
+                    curr_row++
+                add_chr_tot += add_chr
+            // additional spaces for any newly started row to prefill the buffer full rows
+            if curr_row > row:
+                    for (num_cells_x - curr_col):
+                        n_text_rbuffer.push(32)
+                        n_text_c1buffer.push(text_color)
+                        n_text_c2buffer.push(background_color)
+                    add_chr_tot += num_cells_x - curr_col
+            // the asserts are bug test
+            if curr_row != row:
+                assert (col + num_cells_x * row + add_chr_tot) % num_cells_x == 0
+                assert (insertpos_buffer_idx + add_chr_tot) % num_cells_x == 0            
+            // decide how to modify the class buffers
+            assert n_text_rbuffer.length == add_chr_tot
+            if insertpos_buffer_idx > 0:
+                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
+                    text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
+                    text_c1buffer = append(p1_text_c1buffer, n_text_c1buffer)
+                    text_c2buffer = append(p1_text_c2buffer, n_text_c2buffer)
+                else:
+                    text_rbuffer = append(p1_text_rbuffer, append(n_text_rbuffer, slice(text_rbuffer, insertpos_buffer_idx + add_chr_tot, -1)))
+                    text_c1buffer = append(p1_text_c1buffer, append(n_text_c1buffer, slice(text_c1buffer, insertpos_buffer_idx + add_chr_tot, -1)))
+                    text_c2buffer = append(p1_text_c2buffer, append(n_text_c2buffer, slice(text_c2buffer, insertpos_buffer_idx + add_chr_tot, -1)))
+            else:
+                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
+                    text_rbuffer = n_text_rbuffer
+                    text_c1buffer = n_text_c1buffer
+                    text_c2buffer = n_text_c2buffer
+                else:
+                    text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
+                    text_c1buffer = append(n_text_c1buffer, slice(text_c1buffer, add_chr_tot, -1))
+                    text_c2buffer = append(n_text_c2buffer, slice(text_c2buffer, add_chr_tot, -1))
+            // update cursor position
+            if (insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length) and autoscroll: // can we just overwrite the current buffers with the new text?
+                ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
+                cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1
+            else:
+                cursor_pos_x, cursor_pos_y = curr_col, curr_row
+            // more tests
+            assert text_rbuffer.length % num_cells_x == 0
+            assert text_rbuffer.length == text_c1buffer.length and text_rbuffer.length == text_c2buffer.length
+            return true
+        else:
+            return false
+
+    def writexy(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
+        if not check_col_row_(col, row): return
+        printxy_print_(col, row, s)
+        //print "Debug pos after writexy: " + cursor_pos_x + ", " + cursor_pos_y
+        
+    def write(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
+        printxy_print_(cursor_pos_x, cursor_pos_y, s)
+        //print "Debug pos after write: " + cursor_pos_x + ", " + cursor_pos_y
+        
+    def writeln(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
+        printxy_print_(cursor_pos_x, cursor_pos_y, s + "\n")
+        //print "Debug pos after writeln: " + cursor_pos_x + ", " + cursor_pos_y
+        
+    def gotoxy(col:int, row:int):
+        if not check_col_row_(col, row): return
+        cursor_pos_x, cursor_pos_y = col, row
+
+    def wherexy():
+        return cursor_pos_x, cursor_pos_y
+
+    def clreol():
+        let base_idx = ulc_buffer_idx + cursor_pos_x + num_cells_x * cursor_pos_y
+        for (num_cells_x - cursor_pos_x) i:
+            text_rbuffer[base_idx + i] = 32
+            text_c1buffer[base_idx + i] = text_color
+            text_c2buffer[base_idx + i] = background_color
+
+    def clr():
+        let num_cells = num_cells_x*num_cells_y
+        text_c1buffer = map(num_cells): text_color
+        text_c2buffer = map(num_cells): background_color
+        text_rbuffer = map(num_cells): 32
+        ulc_buffer_idx = 0
+        cursor_pos_x, cursor_pos_y = 0, 0
+        
+    def rnd_screen():
+        let num_cells = num_cells_x*num_cells_y
+        text_c1buffer = map(num_cells): xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
+        text_c2buffer = map(num_cells): xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
+        text_rbuffer = map(num_cells):  32 + rnd(64)
+        ulc_buffer_idx = 0
+        cursor_pos_x, cursor_pos_y = 0, 0
+
+    def putchar(col:int, row:int, c:int):
+        if not check_col_row_(col, row): return
+        text_rbuffer[ulc_buffer_idx + col + num_cells_x * row] = c
+
+    def getchar(col:int, row:int) -> int:
+        if not check_col_row_(col, row): return
+        return text_rbuffer[ulc_buffer_idx + col + num_cells_x * row]
+       
+    def blit(r:region, col:int, row:int):
+        var portion_x, portion_y = r.extend_x, r.extend_y
+        var offset_x, offset_y = 0, 0
+        if col + r.extend_x > num_cells_x:
+            portion_x = num_cells_x - col
+        elif col < 0:
+            portion_x = portion_x + col
+            offset_x = -col
+            col = 0
+        if row + portion_y > num_cells_y:
+            portion_y = num_cells_y - row
+        elif row < 0:
+            portion_y = portion_y + row
+            offset_y = -row
+            row = 0
+        //print "Debug: adjusted row, col: " + col + ", " + row
+        //print "Debug: region offsets: " + offset_y + ", " + offset_x
+        //print "Debug: region portions: " + portion_y + ", " + portion_x
+        for (portion_y) i:
+            for (portion_x) j:
+                let src_idx = (offset_y + i) * r.extend_x + offset_x + j
+                let cur_chr = r.text_rbuffer[src_idx]
+                if cur_chr != r.alpha_chr :
+                    let tgt_idx = ulc_buffer_idx + (col + j) + num_cells_x * (row + i)
+                    //print "Debug indices: src: " + src_idx + ", tgt: " + tgt_idx
+                    text_rbuffer[tgt_idx] = cur_chr
+                    text_c1buffer[tgt_idx] = r.text_c1buffer[src_idx]
+                    text_c2buffer[tgt_idx] = r.text_c2buffer[src_idx]
+
+    def getscreenregion(col1:int, row1:int, col2:int, row2:int) -> region?:
+        if not check_col_row_(col1, row1) or not check_col_row_(col2, row2): return
+        // swap the parameter orders if col2 is smaller than col1 etc.
+        if col1 > col2:
+            col1, col2 = col2, col1
+        if row1 > row2:
+            row1, row2 = row2, row1
+        let reg = region{}
+        reg.extend_x = col2 - col1 + 1
+        reg.extend_y = row2 - row1 + 1        
+        for (reg.extend_y) i:
+            for (reg.extend_x) j:                
+                let src_idx = ulc_buffer_idx + (col1 + j) + num_cells_x * (row1 + i) // parentheses for clarity!
+                reg.text_rbuffer.push(text_rbuffer[src_idx])
+                reg.text_c1buffer.push(text_c1buffer[src_idx])
+                reg.text_c2buffer.push(text_c2buffer[src_idx])
+        assert reg.text_rbuffer.length == reg.extend_x * reg.extend_y
+        return reg
+        
+    def getscreen() -> region?:
+        return getscreenregion(0, 0, num_cells_x - 1, num_cells_y - 1)
+
+    //------------------ management functions
+
+    def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
+        // init window
+        var init_xs, init_ys = num_cells_x * fontwidth_, num_cells_y * line_height
+        if border_show:
+            init_xs += 2 * border_cells_x * fontwidth_
+            init_ys += 2 * border_cells_y * line_height
+        fatal(gl_window(title, init_xs, init_ys, flags))
+        // init font
+        check(gl_set_font_name(font_path), "can\'t load font!")
+        gl_set_font_size(fontheight)
+        // recalc frame size in px
+        fontwidth_ = gl_text_size(" ").x
+        rescale_()
+        clr() // create empty buffer objects of size num_cells_x * num_cells_y
+        running = true
+
+    def sleep(t):
+        let t0 = gl_time()
+        while gl_frame() and gl_time() -  t0 < t:
+            draw_()
+
+    def update():
+        if gl_frame() and gl_button("escape") != 1:
+            running = true
+            rescale_() // this also rescales the font
+            draw_()
+        else:
+            running = false

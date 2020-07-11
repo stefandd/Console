@@ -11,17 +11,24 @@ c.init("Test1", "data/fonts/Px437_IBM/Px437_IBM_BIOS.ttf", gl_window_init_no_vsy
 let treeobj = region{}
 treeobj.fromREXPaint("data/textsprites/tree.csv")
 
+c.clr()
+let blank_r = c.text_rbuffer.copy()
+let blank_c1 = c.text_c1buffer.copy()
+let blank_c2 = c.text_c2buffer.copy()
+
+let smalltree = treeobj.scaledcopy(8, 8)
+if !smalltree:
+    return
     
 t0 = gl_time()
 while c.running:
     c.update()
-    c.clr()
-    for (100):
-        let smalltree = treeobj.scaledcopy(10, 10)
-        if !smalltree:
-            c.running = false
-            break
-        smalltree.blit(c, rnd(c.num_cells_x + 10) - 5, rnd(c.num_cells_y + 10) - 5)
+    c.text_rbuffer = blank_r.copy()
+    c.text_c1buffer = blank_c1.copy()
+    c.text_c2buffer = blank_c2.copy()
+    //c.clr() 
+    for (64):
+        c.blit(smalltree, rnd(c.num_cells_x + 16) - 8, rnd(c.num_cells_y + 16) - 8)
     FPS_deltas += gl_delta_time()
     FPS_counter++
     // stats (turn off vsync to measure)
