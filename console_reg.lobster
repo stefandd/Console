@@ -21,19 +21,20 @@ if !smalltree:
     return
 
 let testsprite = sprite{}
-testsprite.fromREXPaint("data/textsprites/ufo.csv")
+testsprite.fromregion(smalltree)
+//testsprite.fromREXPaint("data/textsprites/ufo.csv")
 
 var last_key_down = gl_time()
 def handle_player_motion():
     if gl_time() - last_key_down > 0.05:
         if gl_button("right") >= 1:
-            testsprite.pos_x++
+            testsprite.pos = xy_i{testsprite.pos.x + 1, testsprite.pos.y}
         if gl_button("left") >= 1:
-            testsprite.pos_x--
+            testsprite.pos = xy_i{testsprite.pos.x - 1, testsprite.pos.y}
         if gl_button("up") >= 1:
-            testsprite.pos_y--
+            testsprite.pos = xy_i{testsprite.pos.x, testsprite.pos.y - 1}
         if gl_button("down") >= 1:
-            testsprite.pos_y++
+            testsprite.pos = xy_i{testsprite.pos.x, testsprite.pos.y + 1}
         last_key_down = gl_time()
 
 t0 = gl_time()
@@ -47,6 +48,7 @@ while c.running:
         c.blit(smalltree, rnd(c.num_cells_x + 16) - 8, rnd(c.num_cells_y + 16) - 8)
     handle_player_motion()
     c.blit(testsprite)
+    //c.blit(smalltree, 0, 0)
     FPS_deltas += gl_delta_time()
     FPS_counter++
     // stats (turn off vsync to measure)

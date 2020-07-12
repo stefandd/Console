@@ -303,6 +303,7 @@ class region:
         var col_min, col_max = 99999999, -1
         var row_min, row_max = 99999999, -1
         text_rbuffer, text_c1buffer, text_c2buffer = [], [], []
+        extend_x, extend_y = 0, 0
         if content:
             // 1st pass -- bounding box
             for (slice(tokenize(content, "\n", " "), 1, -1)) line, lnum: // slice to skip the header line
@@ -340,37 +341,6 @@ class region:
             print "Error reading file " + REXPaint_csv
             return
 
-    /* this function is now in class console
-    def blit(c:console, col:int, row:int):
-        var portion_x, portion_y = extend_x, extend_y
-        var offset_x, offset_y = 0, 0
-        if col + extend_x > c.num_cells_x:
-            portion_x = c.num_cells_x - col
-        elif col < 0:
-            portion_x = portion_x + col
-            offset_x = -col
-            col = 0
-        if row + portion_y > c.num_cells_y:
-            portion_y = c.num_cells_y - row
-        elif row < 0:
-            portion_y = portion_y + row
-            offset_y = -row
-            row = 0
-        //print "Debug: adjusted row, col: " + col + ", " + row
-        //print "Debug: region offsets: " + offset_y + ", " + offset_x
-        //print "Debug: region portions: " + portion_y + ", " + portion_x
-        for (portion_y) i:
-            for (portion_x) j:
-                let src_idx = (offset_y + i) * extend_x + offset_x + j
-                let cur_chr = text_rbuffer[src_idx]
-                if cur_chr != alpha_chr :
-                    let tgt_idx = c.ulc_buffer_idx + (col + j) + c.num_cells_x * (row + i)
-                    //print "Debug indices: src: " + src_idx + ", tgt: " + tgt_idx
-                    c.text_rbuffer[tgt_idx] = cur_chr
-                    c.text_c1buffer[tgt_idx] = text_c1buffer[src_idx]
-                    c.text_c2buffer[tgt_idx] = text_c2buffer[src_idx]
-    */
-
     def scaledcopy(tgt_extend_x, tgt_extend_y) -> region?:
         if tgt_extend_x < 2 or tgt_extend_y < 2:
             print "Error: illegal operands to scaledcopy!"
@@ -397,23 +367,35 @@ class region:
 
 //----------- sprite ------------
 
-class sprite: region
+class sprite:
 
-    pos_x:int = 0
-    pos_y:int = 0
+    text_rbuffer:[int] = []
+    text_c1buffer:[xyzw_f] = []
+    text_c2buffer:[xyzw_f] = []
     chr_vecs:[xy_i] = []
+    extend_x = 0
+    extend_y = 0
+    alpha_chr = 32
+    pos:xy_i = xy_i{0, 0}
     
-    /*
-    def fromREXPaint(REXPaint_csv):
-        let reg = region{}
-        reg.fromREXPaint(REXPaint_csv)
-        text_rbuffer = reg.text_rbuffer
-        text_c1buffer = reg.text_c1buffer
-        text_c2buffer = reg.text_c2buffer
-        extend_x = reg.extend_x
-        extend_y = reg.extend_y
-    */
+    def fromregion(r:region):
+        text_rbuffer, text_c1buffer, text_c2buffer, chr_vecs = [], [], [], []
+        extend_x, extend_y = r.extend_x, r.extend_y
+        for (extend_y) i:
+            for (extend_x) j:                
+                let src_idx = i * extend_x + j
+                let curr_chr = r.text_rbuffer[src_idx]
+                if curr_chr != alpha_chr :
+                    chr_vecs.push(xy_i{j, i})
+                    text_rbuffer.push(curr_chr)
+                    text_c1buffer.push(r.text_c1buffer[src_idx])
+                    text_c2buffer.push(r.text_c2buffer[src_idx])
 
+    def fromREXPaint(REXPaint_csv:string):
+        let r = region{}
+        r.fromREXPaint(REXPaint_csv)
+        this.fromregion(r)
+    
 //----------- console -----------
 
 class console:
@@ -677,7 +659,7 @@ class console:
         if not check_col_row_(col, row): return
         return text_rbuffer[ulc_buffer_idx + col + num_cells_x * row]
 
-    def blit(r:region, col:int, row:int, blit_cell_color:int?):
+    def blit(r:region, col:int, row:int, blit_cell_color:int):
         var portion_x, portion_y = r.extend_x, r.extend_y
         var offset_x, offset_y = 0, 0
         if col + r.extend_x > num_cells_x:
@@ -695,20 +677,42 @@ class console:
         //print "Debug: adjusted row, col: " + col + ", " + row
         //print "Debug: region offsets: " + offset_y + ", " + offset_x
         //print "Debug: region portions: " + portion_y + ", " + portion_x
-        for (portion_y) i:
-            for (portion_x) j:
-                let src_idx = (offset_y + i) * r.extend_x + offset_x + j
-                let cur_chr = r.text_rbuffer[src_idx]
-                if cur_chr != r.alpha_chr :
-                    let tgt_idx = ulc_buffer_idx + (col + j) + num_cells_x * (row + i)
-                    //print "Debug indices: src: " + src_idx + ", tgt: " + tgt_idx
-                    text_rbuffer[tgt_idx] = cur_chr
-                    text_c1buffer[tgt_idx] = r.text_c1buffer[src_idx]
-                    if blit_cell_color:
+        if blit_cell_color:
+            for (portion_y) i:
+                for (portion_x) j:
+                    let src_idx = (offset_y + i) * r.extend_x + offset_x + j
+                    let curr_chr = r.text_rbuffer[src_idx]
+                    if curr_chr != r.alpha_chr :
+                        let tgt_idx = ulc_buffer_idx + (col + j) + num_cells_x * (row + i)
+                        //print "Debug indices: src: " + src_idx + ", tgt: " + tgt_idx
+                        text_rbuffer[tgt_idx] = curr_chr
+                        text_c1buffer[tgt_idx] = r.text_c1buffer[src_idx]
                         text_c2buffer[tgt_idx] = r.text_c2buffer[src_idx]
+        else:
+            for (portion_y) i:
+                for (portion_x) j:
+                    let src_idx = (offset_y + i) * r.extend_x + offset_x + j
+                    let curr_chr = r.text_rbuffer[src_idx]
+                    if curr_chr != r.alpha_chr :
+                        let tgt_idx = ulc_buffer_idx + (col + j) + num_cells_x * (row + i)
+                        text_rbuffer[tgt_idx] = curr_chr
+                        text_c1buffer[tgt_idx] = r.text_c1buffer[src_idx]
+            
+    def blit(r:region, col:int, row:int):
+        blit(r, col, row, 1)
 
     def blit(s:sprite):
-        blit(s, s.pos_x, s.pos_y)
+        let ulc = xy_i{0, 0}
+        let lrc = xy_i{num_cells_x, num_cells_y}
+        let chrs = s.chr_vecs
+        let screensize = num_cells_x * num_cells_y
+        for (chrs.length) i:
+            let chr_pos = chrs[i] + s.pos
+            if manhattan((chr_pos >= ulc) + (chr_pos < lrc)) == 4: //  true on both in both dims makes 4
+                let tgt_idx = chr_pos.x + num_cells_x * chr_pos.y
+                text_rbuffer[tgt_idx] = s.text_rbuffer[i]
+                text_c1buffer[tgt_idx] = s.text_c1buffer[i]
+                text_c2buffer[tgt_idx] = s.text_c2buffer[i]
 
     def getscreenregion(col1:int, row1:int, col2:int, row2:int) -> region?:
         if not check_col_row_(col1, row1) or not check_col_row_(col2, row2): return
@@ -717,17 +721,17 @@ class console:
             col1, col2 = col2, col1
         if row1 > row2:
             row1, row2 = row2, row1
-        let reg = region{}
-        reg.extend_x = col2 - col1 + 1
-        reg.extend_y = row2 - row1 + 1        
-        for (reg.extend_y) i:
-            for (reg.extend_x) j:                
+        let r = region{}
+        r.extend_x = col2 - col1 + 1
+        r.extend_y = row2 - row1 + 1        
+        for (r.extend_y) i:
+            for (r.extend_x) j:                
                 let src_idx = ulc_buffer_idx + (col1 + j) + num_cells_x * (row1 + i) // parentheses for clarity!
-                reg.text_rbuffer.push(text_rbuffer[src_idx])
-                reg.text_c1buffer.push(text_c1buffer[src_idx])
-                reg.text_c2buffer.push(text_c2buffer[src_idx])
-        assert reg.text_rbuffer.length == reg.extend_x * reg.extend_y
-        return reg
+                r.text_rbuffer.push(text_rbuffer[src_idx])
+                r.text_c1buffer.push(text_c1buffer[src_idx])
+                r.text_c2buffer.push(text_c2buffer[src_idx])
+        assert r.text_rbuffer.length == r.extend_x * r.extend_y
+        return r
         
     def getscreen() -> region?:
         return getscreenregion(0, 0, num_cells_x - 1, num_cells_y - 1)
