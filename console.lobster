@@ -1,7 +1,7 @@
 import std
 import gl
 
-// -------- utility functions ------------
+//----------- misc. -------------
 
 def string_find(s:string, pat:string) -> int: // slow brute force
     let N:int = s.length
@@ -26,7 +26,7 @@ def string_replace(s:string, search:string, replace:string) -> string:
                 return substring(s, 0, i) + replace + string_replace(substring(s, i + srchlen, -1), search, replace)
     return s
     
-//-------- Region def + functions ---------
+//----------- region ------------
 
 // cp437 translation table, needed for the REXPaint import function in cp437_DOSLatinUS order
 let cp437_to_unicode:[int] = [
@@ -340,9 +340,6 @@ class region:
             print "Error reading file " + REXPaint_csv
             return
 
-    def update(dt):
-        pass() // empty by default
-    
     /* this function is now in class console
     def blit(c:console, col:int, row:int):
         var portion_x, portion_y = extend_x, extend_y
@@ -398,7 +395,26 @@ class region:
         assert scopy.text_rbuffer.length == tgt_extend_x * tgt_extend_y
         return scopy
 
-//-------- console --------------------
+//----------- sprite ------------
+
+class sprite: region
+
+    pos_x:int = 0
+    pos_y:int = 0
+    chr_vecs:[xy_i] = []
+    
+    /*
+    def fromREXPaint(REXPaint_csv):
+        let reg = region{}
+        reg.fromREXPaint(REXPaint_csv)
+        text_rbuffer = reg.text_rbuffer
+        text_c1buffer = reg.text_c1buffer
+        text_c2buffer = reg.text_c2buffer
+        extend_x = reg.extend_x
+        extend_y = reg.extend_y
+    */
+
+//----------- console -----------
 
 class console:
     running = false
@@ -443,9 +459,9 @@ class console:
     update_clients_ = []
     do_client_updates_ = false
     ignore_arg_err_ = false
-
-    //------------------ class internal functions
-    
+    //
+    // internal funcs
+    //
     def textdraw_():
         // draw screen characters
         var bufferidx = ulc_buffer_idx
@@ -515,9 +531,9 @@ class console:
         else:
             print "Illegal x, y operands: " + col + ", " + row
             return false
-
-    //------------------ print functions
-
+    //
+    // print functions
+    //
     def printxy_print_(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         var p1_text_rbuffer:[int] = []
         var p1_text_c1buffer:[xyzw_f] = []
@@ -660,8 +676,8 @@ class console:
     def getchar(col:int, row:int) -> int:
         if not check_col_row_(col, row): return
         return text_rbuffer[ulc_buffer_idx + col + num_cells_x * row]
-       
-    def blit(r:region, col:int, row:int):
+
+    def blit(r:region, col:int, row:int, blit_cell_color:int?):
         var portion_x, portion_y = r.extend_x, r.extend_y
         var offset_x, offset_y = 0, 0
         if col + r.extend_x > num_cells_x:
@@ -688,7 +704,11 @@ class console:
                     //print "Debug indices: src: " + src_idx + ", tgt: " + tgt_idx
                     text_rbuffer[tgt_idx] = cur_chr
                     text_c1buffer[tgt_idx] = r.text_c1buffer[src_idx]
-                    text_c2buffer[tgt_idx] = r.text_c2buffer[src_idx]
+                    if blit_cell_color:
+                        text_c2buffer[tgt_idx] = r.text_c2buffer[src_idx]
+
+    def blit(s:sprite):
+        blit(s, s.pos_x, s.pos_y)
 
     def getscreenregion(col1:int, row1:int, col2:int, row2:int) -> region?:
         if not check_col_row_(col1, row1) or not check_col_row_(col2, row2): return
@@ -711,9 +731,9 @@ class console:
         
     def getscreen() -> region?:
         return getscreenregion(0, 0, num_cells_x - 1, num_cells_y - 1)
-
-    //------------------ management functions
-
+    //
+    // management functions
+    //
     def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
         // init window
         var init_xs, init_ys = num_cells_x * fontwidth_, num_cells_y * line_height

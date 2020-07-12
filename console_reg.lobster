@@ -4,8 +4,8 @@ import console
 let c:console = console{}
 var FPS_counter, FPS_deltas = 0, 0.0
 var t0 = gl_time()
-//c.init("Test1", "data/fonts/PetMe/PetMe.ttf", gl_window_init_no_vsync)
-c.init("Test1", "data/fonts/Px437_IBM/Px437_IBM_BIOS.ttf", gl_window_init_no_vsync)
+c.init("Test1", "data/fonts/PetMe/PetMe.ttf", gl_window_init_no_vsync)
+//c.init("Test1", "data/fonts/Px437_IBM/Px437_IBM_BIOS.ttf", gl_window_init_no_vsync)
 
 
 let treeobj = region{}
@@ -19,7 +19,23 @@ let blank_c2 = c.text_c2buffer.copy()
 let smalltree = treeobj.scaledcopy(8, 8)
 if !smalltree:
     return
-    
+
+let testsprite = sprite{}
+testsprite.fromREXPaint("data/textsprites/ufo.csv")
+
+var last_key_down = gl_time()
+def handle_player_motion():
+    if gl_time() - last_key_down > 0.05:
+        if gl_button("right") >= 1:
+            testsprite.pos_x++
+        if gl_button("left") >= 1:
+            testsprite.pos_x--
+        if gl_button("up") >= 1:
+            testsprite.pos_y--
+        if gl_button("down") >= 1:
+            testsprite.pos_y++
+        last_key_down = gl_time()
+
 t0 = gl_time()
 while c.running:
     c.update()
@@ -27,8 +43,10 @@ while c.running:
     c.text_c1buffer = blank_c1.copy()
     c.text_c2buffer = blank_c2.copy()
     //c.clr() 
-    for (64):
+    for (8):
         c.blit(smalltree, rnd(c.num_cells_x + 16) - 8, rnd(c.num_cells_y + 16) - 8)
+    handle_player_motion()
+    c.blit(testsprite)
     FPS_deltas += gl_delta_time()
     FPS_counter++
     // stats (turn off vsync to measure)
