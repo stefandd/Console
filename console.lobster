@@ -706,6 +706,7 @@ class console:
         let lrc = xy_i{num_cells_x, num_cells_y}
         let chrs = s.chr_vecs
         let screensize = num_cells_x * num_cells_y
+        //let within_screen = s.pos.x >= 0 and (s.pos.x  + s.extend_x < num_cells_x) and s.pos.y >= 0 and (s.pos.y  + s.extend_y < num_cells_y)
         for (chrs.length) i:
             let chr_pos = chrs[i] + s.pos
             if manhattan((chr_pos >= ulc) + (chr_pos < lrc)) == 4: //  true on both in both dims makes 4
