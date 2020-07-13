@@ -8,7 +8,7 @@ var t0 = gl_time()
 
 let mats =
 """
-SHADER simplecrt
+SHADER simplecrt // Shader based on https://the8bitpimp.wordpress.com/2014/07/17/retro-crt-shader/
     VERTEX
         INPUTS apos:4 atc:2
         UNIFORMS mvp
