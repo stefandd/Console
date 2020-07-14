@@ -297,7 +297,7 @@ class region:
     extend_y = 0
     alpha_chr = 32
 
-    def fromREXPaint(REXPaint_csv):    
+    def fromREXPaint(REXPaint_csv):
         //read_file(file:string, textmode:int = 0) -> string?
         let content = read_file(REXPaint_csv, 1)
         var col_min, col_max = 99999999, -1
@@ -341,10 +341,10 @@ class region:
             print "Error reading file " + REXPaint_csv
             return
 
-    def scaledcopy(tgt_extend_x, tgt_extend_y) -> region?:
+    def scaledcopy(tgt_extend_x, tgt_extend_y) -> region:
         if tgt_extend_x < 2 or tgt_extend_y < 2:
             print "Error: illegal operands to scaledcopy!"
-            return
+            return region{} // returns empty region
         let t2s_sc_x = float(extend_x) / tgt_extend_x // target-to-source (inverse) scaling factor
         let t2s_sc_y = float(extend_y) / tgt_extend_y
         let scopy = region{}
@@ -373,14 +373,13 @@ class sprite:
     text_c1buffer:[xyzw_f] = []
     text_c2buffer:[xyzw_f] = []
     chr_vecs:[xy_i] = []
-    extend_x = 0
-    extend_y = 0
+    extend = xy_i{0, 0}
+    pos = xy_i{0, 0}
     alpha_chr = 32
-    pos:xy_i = xy_i{0, 0}
     
     def fromregion(r:region):
         text_rbuffer, text_c1buffer, text_c2buffer, chr_vecs = [], [], [], []
-        extend_x, extend_y = r.extend_x, r.extend_y
+        let extend_x, extend_y = r.extend_x, r.extend_y
         for (extend_y) i:
             for (extend_x) j:                
                 let src_idx = i * extend_x + j
@@ -390,22 +389,53 @@ class sprite:
                     text_rbuffer.push(curr_chr)
                     text_c1buffer.push(r.text_c1buffer[src_idx])
                     text_c2buffer.push(r.text_c2buffer[src_idx])
-
+        extend = xy_i{extend_x, extend_y}
+        
     def fromREXPaint(REXPaint_csv:string):
         let r = region{}
         r.fromREXPaint(REXPaint_csv)
         this.fromregion(r)
         
-    def collisiontest(s:sprite) -> bool:
-        let opp_chr_vecs = s.chr_vecs
-        for (opp_chr_vecs.length) j: // our chars
-            let opp_chr_pos = opp_chr_vecs[j] + s.pos
-            for (chr_vecs.length) i: // our chars
-                if chr_vecs[i] + pos == opp_chr_pos:
+    def clone() -> sprite:
+        let scopy = sprite{}
+        scopy.text_rbuffer = text_rbuffer.copy()
+        scopy.text_c1buffer = text_c1buffer.copy()
+        scopy.text_c2buffer = text_c2buffer.copy()
+        scopy.chr_vecs = chr_vecs.copy()
+        scopy.extend = extend
+        scopy.pos = pos
+        scopy.alpha_chr = alpha_chr
+        return scopy
+
+    def collisiontest_slow(s:sprite) -> bool:
+        let s_pos = s.pos
+        let s_chr_vecs = s.chr_vecs
+        for (s_chr_vecs.length) j: // loop over the other sprite's chars
+            let testpos = s_pos - pos + s_chr_vecs[j]
+            for (chr_vecs.length) i: // loop over our chars
+                if chr_vecs[i] == testpos:
                     return true
+        return false
+
+    def collisiontest(s:sprite) -> bool:
+        // 1st -- bounding box overlap test, and only if overlap in bounding box then proceed
+        // with the detailed character collision test --> gains ~20% performance in collisiontest
+        let extmax = max(extend, s.extend)
+        let s_pos = s.pos
+        // test both the vector joining the upper left corners and the vector joining the lower right corners to be shorter than the maximum of the extends in each dimension.
+        // the plus replaces the missing logical AND, so 4 after manhattan() means true in both terms and in both dimensions
+        if manhattan( (abs(s_pos - pos) <= extmax) + (abs(s_pos + s.extend - pos  - extend) <= extmax) ) == 4:
+            // 2nd -- detailed test collisions in the character coordinate vectors, only performed if the bounding boxes collided
+            let s_chr_vecs = s.chr_vecs
+            for (s_chr_vecs.length) j: // loop over the other sprite's chars
+                let testpos = s_pos - pos + s_chr_vecs[j]
+                for (chr_vecs.length) i: // loop over our chars
+                    if chr_vecs[i] == testpos:
+                        return true
         return false
     
 //----------- console -----------
+
 
 class console:
     running = false
@@ -450,9 +480,8 @@ class console:
     update_clients_ = []
     do_client_updates_ = false
     ignore_arg_err_ = false
-    //
+
     // internal funcs
-    //
     def textdraw_():
         // draw screen characters
         var bufferidx = ulc_buffer_idx
@@ -478,9 +507,7 @@ class console:
         else:
             gl_clear(background_color)
         //draw__behind()
-        //self:draw__sprites_background()
         textdraw_()
-        //self:draw__sprites_foreground()
         //draw__in_front()
             
     def rescale_():
@@ -522,9 +549,8 @@ class console:
         else:
             print "Illegal x, y operands: " + col + ", " + row
             return false
-    //
+
     // print functions
-    //
     def printxy_print_(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         var p1_text_rbuffer:[int] = []
         var p1_text_c1buffer:[xyzw_f] = []
@@ -620,15 +646,12 @@ class console:
     def writexy(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         if not check_col_row_(col, row): return
         printxy_print_(col, row, s)
-        //print "Debug pos after writexy: " + cursor_pos_x + ", " + cursor_pos_y
         
     def write(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         printxy_print_(cursor_pos_x, cursor_pos_y, s)
-        //print "Debug pos after write: " + cursor_pos_x + ", " + cursor_pos_y
         
     def writeln(s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         printxy_print_(cursor_pos_x, cursor_pos_y, s + "\n")
-        //print "Debug pos after writeln: " + cursor_pos_x + ", " + cursor_pos_y
         
     def gotoxy(col:int, row:int):
         if not check_col_row_(col, row): return
@@ -668,6 +691,7 @@ class console:
         if not check_col_row_(col, row): return
         return text_rbuffer[ulc_buffer_idx + col + num_cells_x * row]
 
+    // interface to regions and sprites (blit, retrieve screen regions)
     def blit(r:region, col:int, row:int, blit_cell_color:int):
         var portion_x, portion_y = r.extend_x, r.extend_y
         var offset_x, offset_y = 0, 0
@@ -745,9 +769,8 @@ class console:
         
     def getscreen() -> region?:
         return getscreenregion(0, 0, num_cells_x - 1, num_cells_y - 1)
-    //
+
     // management functions
-    //
     def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
         // init window
         var init_xs, init_ys = num_cells_x * fontwidth_, num_cells_y * line_height
