@@ -62,10 +62,17 @@ t0 = gl_time()
 while c.running:
     let t_now = gl_time()
     post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
-        //gl_set_uniform("time", t_now) // uncommenting this crashes Lobster
         c.clr() 
-        for (ufosprites) ufo:
-            ufo.pos = xy_i{rnd(c.num_cells_x + 16) - 8, rnd(c.num_cells_y + 16) - 8}
+        for (ufosprites) ufo, i:
+            var pos_OK = false
+            while not pos_OK:
+                ufo.pos = xy_i{rnd(c.num_cells_x + 16) - 8, rnd(c.num_cells_y + 16) - 8}
+                var collision_num = 0
+                for (slice(ufosprites, i + 1, -1)) ufo2:
+                    if ufo.collisiontest(ufo2):
+                        collision_num++
+                        break                
+                pos_OK = collision_num == 0
             if playersprite.collisiontest(ufo): collisions++
             c.blit(ufo)
         handle_player_motion()

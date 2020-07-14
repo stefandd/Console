@@ -793,7 +793,7 @@ class console:
             draw_()
 
     def update():
-        if gl_frame() and gl_button("escape") != 1:
+        if gl_frame() and gl_button("escape") < 1:
             running = true
             rescale_() // this also rescales the font
             draw_()
