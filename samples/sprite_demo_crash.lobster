@@ -40,7 +40,7 @@ let playersprite = sprite{}
 playersprite.fromREXPaint("data/textsprites/spaceship.csv")
 let ufosprite = sprite{}
 ufosprite.fromREXPaint("data/textsprites/ufo.csv")
-let ufosprites = map(128): ufosprite.clone() // 128 UFOs
+let ufosprites = map(8): ufosprite.clone() // 128 UFOs
 var collisions = 0
 
 // player movement
@@ -71,7 +71,7 @@ while c.running:
                 for (slice(ufosprites, i + 1, -1)) ufo2:
                     if ufo.collisiontest(ufo2):
                         collision_num++
-                        break                
+                        break
                 pos_OK = collision_num == 0
             if playersprite.collisiontest(ufo): collisions++
             c.blit(ufo)
