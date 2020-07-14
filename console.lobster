@@ -395,6 +395,15 @@ class sprite:
         let r = region{}
         r.fromREXPaint(REXPaint_csv)
         this.fromregion(r)
+        
+    def collisiontest(s:sprite) -> bool:
+        let opp_chr_vecs = s.chr_vecs
+        for (opp_chr_vecs.length) j: // our chars
+            let opp_chr_pos = opp_chr_vecs[j] + s.pos
+            for (chr_vecs.length) i: // our chars
+                if chr_vecs[i] + pos == opp_chr_pos:
+                    return true
+        return false
     
 //----------- console -----------
 
