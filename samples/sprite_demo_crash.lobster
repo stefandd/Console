@@ -28,7 +28,6 @@ SHADER simplecrt // Shader based on https://the8bitpimp.wordpress.com/2014/07/17
 // vars for FPS counter
 var FPS_counter, FPS_deltas = 0, 0.0
 var t0 = 0.0
-rnd_seed(0)
 
 // console setup
 let c:console = console{num_cells_x:40, num_cells_y:40}
@@ -63,17 +62,15 @@ t0 = gl_time()
 while c.running:
     let t_now = gl_time()
     post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
-        //gl_set_uniform("time", t_now)
+        //gl_set_uniform("time", t_now) // uncommenting this crashes Lobster
         c.clr() 
         for (ufosprites) ufo:
-            //c.blit(smalltree, rnd(c.num_cells_x + 16) - 8, rnd(c.num_cells_y + 16) - 8)
             ufo.pos = xy_i{rnd(c.num_cells_x + 16) - 8, rnd(c.num_cells_y + 16) - 8}
             if playersprite.collisiontest(ufo): collisions++
             c.blit(ufo)
         handle_player_motion()
         c.blit(playersprite)
         c.update()
-            //c.blit(smalltree, 0, 0)
         FPS_deltas += gl_delta_time()
         FPS_counter++
     // stats (turn off vsync to measure)
