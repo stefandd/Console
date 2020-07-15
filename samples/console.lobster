@@ -440,8 +440,9 @@ class sprite:
 class console:
 
     running = false
-    fontheight:int = 20
-    line_height:int = 20
+    fontheight:int = 22
+    line_height:int = 22
+    fontwidth_:int = 22
     num_cells_x:int = 40
     num_cells_y:int = 25
     border_cells_x:int = 3
@@ -470,7 +471,6 @@ class console:
     key_is_down = false
     input_start_lpointer:int = 1
     window_xy_ = xy_i{0, 0}
-    fontwidth_:int = 20
     ulc_x_px_:int = 0
     ulc_y_px_:int = 0
     rectsize_xy_ = xy_f{0, 0}
