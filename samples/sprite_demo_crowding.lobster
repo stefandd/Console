@@ -41,8 +41,7 @@ let playersprite = sprite{}
 playersprite.fromREXPaint("data/textsprites/spaceship.csv")
 let ufosprite = sprite{}
 ufosprite.fromREXPaint("data/textsprites/ufo.csv")
-let UFO_NUMBER = 32
-let ufosprites = map(UFO_NUMBER): ufosprite.clone() // 128 UFOs
+let ufosprites = map(64): ufosprite.clone() // 128 UFOs
 
 // inital placement UFOs
 def place_ufos():
@@ -61,9 +60,11 @@ def place_ufos():
 def move_ufos():
     // move them in the horizontal position of the player ship
     for (ufosprites) ufo, i:
-        var pos_OK = true // false
+        var pos_OK = false or (rnd(6) - 4)// false
         while not pos_OK:
-            ufo.pos = xy_i{ufo.pos.x + (rnd(3) - 1), ufo.pos.y + (rnd(3) - 1)}
+            let x_offset = (rnd(3) - 1) + 2 * (playersprite.pos.x > ufo.pos.x) - 1
+            let y_offset = (rnd(3) - 1)
+            ufo.pos = xy_i{ufo.pos.x + x_offset, ufo.pos.y + y_offset}
             if i > 0: // 2nd UFO needs to also account for the 1st etc.
                 let collision_info = map(i) j:
                     ufo.collisiontest(ufosprites[j])
@@ -74,16 +75,17 @@ def move_ufos():
 
 // player movement
 def handle_player_motion():
+    // function to test new pos
     def move_check_collisions(testpos):
         let origpos = playersprite.pos
         playersprite.pos = testpos
         let collision_info = map(ufosprites) ufo:
-                                    playersprite.collisiontest(ufo)
+                                playersprite.collisiontest(ufo)
         if any(collision_info):
             playersprite.pos = origpos // move player back
-
+    // check mvt keys
     if gl_time() - last_key_down > 0.03: // limit the player key repeat rate
-        if gl_button("right") >= 1:
+        if gl_button("right") >= 1:            
             move_check_collisions(xy_i{playersprite.pos.x + 1, playersprite.pos.y})
         if gl_button("left") >= 1:
             move_check_collisions(xy_i{playersprite.pos.x - 1, playersprite.pos.y})
