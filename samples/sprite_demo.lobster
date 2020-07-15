@@ -22,7 +22,7 @@ SHADER simplecrt // Shader based on https://the8bitpimp.wordpress.com/2014/07/17
         float r = texture( tex0, vec2( itc.x+o, itc.y+o ) ).x;
         float g = texture( tex0, vec2( itc.x-o, itc.y+o ) ).y;
         float b = texture( tex0, vec2( itc.x  , itc.y-o ) ).z;
-        frag_color = vec4(r, g, b, l) * s;
+        frag_color = vec4( r*0.7f, g, b*0.9f, l) * s;
 """
 
 // vars for FPS counter
