@@ -40,7 +40,7 @@ let playersprite = sprite{}
 playersprite.fromREXPaint("data/textsprites/spaceship.csv")
 let ufosprite = sprite{}
 ufosprite.fromREXPaint("data/textsprites/ufo.csv")
-let ufosprites = map(128): ufosprite.clone() // 128 UFOs
+let ufosprites = map(64): ufosprite.clone() // 128 UFOs
 var collisions = 0
 
 // player movement

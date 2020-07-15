@@ -438,6 +438,7 @@ class sprite:
 
 
 class console:
+
     running = false
     fontheight:int = 20
     line_height:int = 20
@@ -787,9 +788,10 @@ class console:
         clr() // create empty buffer objects of size num_cells_x * num_cells_y
         running = true
 
-    def sleep(t):
-        let t0 = gl_time()
-        while gl_frame() and gl_time() -  t0 < t:
+    def sleep(t:float):
+        let _t0 = gl_time()
+        while gl_frame() and gl_time() -  _t0 < t:
+            rescale_() // this also rescales the font
             draw_()
 
     def update():
