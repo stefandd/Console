@@ -17,7 +17,7 @@ SHADER simplecrt // Shader based on https://the8bitpimp.wordpress.com/2014/07/17
         UNIFORM float time
         float f  = sin( itc.y * 320.f * 3.14f ); // per row offset
         float o  = f * (0.35f / 320.f); // scale to per pixel
-        float s  = f * .03f + 0.97f; // scale for subtle effect
+        float s  = f * .06f + 0.94f; // scale for subtle effect
         float l  = sin( time * 32.f )*.03f + 0.97f; // scan line fading
         // sample in 3 colour offset
         float r = texture( tex0, vec2( itc.x+o, itc.y+o ) ).x;
@@ -467,7 +467,7 @@ class console:
 
     running = false
     fontheight:int = 22
-    line_height:int = 22
+    lineheight:int = 22
     fontwidth_:int = 22
     num_cells_x:int = 40
     num_cells_y:int = 25
@@ -508,7 +508,9 @@ class console:
     do_client_updates_ = false
     ignore_arg_err_ = false
     FPS:float = 0.0
-    
+    using_crt_shader = false
+    esc_does_quit = true
+
     // internal funcs
     def textdraw_():
         // draw screen characters
@@ -540,10 +542,10 @@ class console:
             
     def rescale_():
         window_xy_ = gl_window_size() // current window size
-        var orig_width, orig_height = num_cells_x * fontwidth_, num_cells_y * line_height // our space needs in the current font size and line_height
+        var orig_width, orig_height = num_cells_x * fontwidth_, num_cells_y * lineheight // our space needs in the current font size and lineheight
         if border_show:
             orig_width += 2 * border_cells_x * fontwidth_
-            orig_height += 2 * border_cells_y * line_height
+            orig_height += 2 * border_cells_y * lineheight
         scale_x, scale_y = float(window_xy_.x) / orig_width, float(window_xy_.y) / orig_height // resulting scaling factors
         // recalculate the upper left corner position in pixels to be centered in window
         //ulc_x_px_, ulc_y_px_ = 0, 0
@@ -564,9 +566,9 @@ class console:
                 ulc_x_px_ = int((window_xy_.x - scale_x * orig_width)/2.0)
                 ulc_y_px_ = 0
         // precalculate the translation vectors and the textbox size
-        rectsize_xy_ = xy_f{ scale_x * fontwidth_, scale_y * line_height }
+        rectsize_xy_ = xy_f{ scale_x * fontwidth_, scale_y * lineheight }
         dcell_x_ = xy_f{ scale_x * fontwidth_, 0 }
-        dcr_ = xy_f{ -num_cells_x * scale_x * fontwidth_, scale_y * line_height }
+        dcr_ = xy_f{ -num_cells_x * scale_x * fontwidth_, scale_y * lineheight }
         // rescale the font
         gl_set_font_size(int(scale_y * fontheight + 0.5))
 
@@ -983,10 +985,10 @@ class console:
     // management functions
     def init(title:string, font_path:string, flags:int): // should add cols, rows, buffersize
         // init window
-        var init_xs, init_ys = num_cells_x * fontwidth_, num_cells_y * line_height
+        var init_xs, init_ys = num_cells_x * fontwidth_, num_cells_y * lineheight
         if border_show:
             init_xs += 2 * border_cells_x * fontwidth_
-            init_ys += 2 * border_cells_y * line_height
+            init_ys += 2 * border_cells_y * lineheight
         fatal(gl_window(title, init_xs, init_ys, flags))
         // init font
         check(gl_set_font_name(font_path), "can\'t load font!")
@@ -998,10 +1000,28 @@ class console:
         clr() // create empty buffer objects of size num_cells_x * num_cells_y
         running = true
 
+    def sleep(t:float):
+        if t <= 0.0: return
+        let t_now = gl_time()
+        if using_crt_shader:
+            while gl_frame() and (gl_time() - t_now < t):
+                if gl_button("escape") >= 1 and esc_does_quit: return
+                rescale_() // this also rescales the font
+                post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
+                    gl_ortho(false, false)
+                    draw_()
+                gl_set_uniform("time", gl_time())
+        else:
+            while gl_frame() and (gl_time() - t_now < t):
+                if gl_button("escape") >= 1 and esc_does_quit: return
+                rescale_() // this also rescales the font
+                draw_()
+
     def run(body):
         running = true
+        using_crt_shader = false
         while gl_frame():
-            if gl_button("escape") >= 1:
+            if gl_button("escape") >= 1 and esc_does_quit:
                 running = false
                 return
             FPS = 1.0 / gl_delta_time()
@@ -1011,14 +1031,15 @@ class console:
 
     def run_crt(body):
         running = true
+        using_crt_shader = true
         while gl_frame():
-            if gl_button("escape") >= 1:
+            if gl_button("escape") >= 1 and esc_does_quit:
                 running = false
                 return
             FPS = 1.0 / gl_delta_time()
+            body()
+            rescale_() // this also rescales the font
             post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
                 gl_ortho(false, false)
-                body()
-                rescale_() // this also rescales the font
                 draw_()
             gl_set_uniform("time", gl_time())

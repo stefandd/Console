@@ -7,7 +7,7 @@ var t0 = 0.0
 var last_key_down = 0.0
 
 // console setup
-let c:console = console{num_cells_x:40, num_cells_y:40}
+let c:console = console{num_cells_x:40, num_cells_y:40, fontheight:12, fontwidth_:12, lineheight:12}
 c.background_color = xyzw_f{0.2, 0.2, 1.0, 1}
 c.init("SpriteTest1", "data/fonts/Px437_IBM/Px437_IBM_BIOS.ttf", gl_window_init_no_vsync)
 
@@ -16,7 +16,7 @@ let playersprite = sprite{}
 playersprite.fromREXPaint("data/textsprites/spaceship.csv")
 let ufosprite = sprite{}
 ufosprite.fromREXPaint("data/textsprites/ufo.csv")
-let UFO_NUMBER = 32
+let UFO_NUMBER = 128
 let ufosprites = map(UFO_NUMBER): ufosprite.clone() // 128 UFOs
 
 // inital placement UFOs
@@ -73,11 +73,12 @@ def handle_player_motion():
 place_ufos()
 
 t0 = gl_time()
-c.run_crt():
+c.run():
     c.clr() 
     handle_player_motion()
     move_ufos()
     c.blit(playersprite)
+    c.sleep(0.1)
     // stats (turn off vsync to measure)
     FPS_sum += c.FPS
     FPS_counter++
