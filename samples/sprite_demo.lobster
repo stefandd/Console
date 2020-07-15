@@ -17,12 +17,12 @@ SHADER simplecrt // Shader based on https://the8bitpimp.wordpress.com/2014/07/17
         float f  = sin( itc.y * 320.f * 3.14f ); // per row offset
         float o  = f * (0.35f / 320.f); // scale to per pixel
         float s  = f * .03f + 0.97f; // scale for subtle effect
-        float l  = sin( time * 32.f )*.1f + 0.9f; // scan line fading; turned off for now (performance)
+        float l  = sin( time * 32.f )*.03f + 0.97f; // scan line fading
         // sample in 3 colour offset
         float r = texture( tex0, vec2( itc.x+o, itc.y+o ) ).x;
         float g = texture( tex0, vec2( itc.x-o, itc.y+o ) ).y;
         float b = texture( tex0, vec2( itc.x  , itc.y-o ) ).z;
-        frag_color = vec4(r, g, b, l) * s; // vec4(r, g, b, 1.0) * s; // vec4(r, g, b, l) * s;
+        frag_color = vec4(r, g, b, l) * s;
 """
 
 // vars for FPS counter
@@ -41,7 +41,7 @@ let playersprite = sprite{}
 playersprite.fromREXPaint("data/textsprites/spaceship.csv")
 let ufosprite = sprite{}
 ufosprite.fromREXPaint("data/textsprites/ufo.csv")
-let ufosprites = map(32): ufosprite.clone() // 128 UFOs
+let ufosprites = map(0): ufosprite.clone() // 128 UFOs
 
 // inital placement UFOs
 def place_ufos():
@@ -94,7 +94,7 @@ def handle_player_motion():
 
 
 // main loop
-place_ufos()
+//place_ufos()
 
 t0 = gl_time()
 while c.running:
@@ -102,7 +102,7 @@ while c.running:
     post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
         c.clr() 
         handle_player_motion()
-        move_ufos()
+        //move_ufos()
         c.blit(playersprite)
         c.update()
         gl_set_uniform("time", gl_time())
