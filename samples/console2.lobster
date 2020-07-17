@@ -402,7 +402,6 @@ class sprite:
     chr_vecs:[xy_i] = []
     extend = xy_i{0, 0}
     pos = xy_i{0, 0}
-    alpha_chr = 32
     
     def fromregion(r:region):
         text_rbuffer, text_c1buffer, text_c2buffer, chr_vecs = [], [], [], []
@@ -411,18 +410,27 @@ class sprite:
             for (extend_x) j:                
                 let src_idx = i * extend_x + j
                 let curr_chr = r.text_rbuffer[src_idx]
-                if curr_chr != alpha_chr :
+                if curr_chr != r.alpha_chr:
                     chr_vecs.push(xy_i{j, i})
                     text_rbuffer.push(curr_chr)
                     text_c1buffer.push(r.text_c1buffer[src_idx])
                     text_c2buffer.push(r.text_c2buffer[src_idx])
         extend = xy_i{extend_x, extend_y}
-        
+                
     def fromREXPaint(REXPaint_csv:string):
         let r = region{}
         r.fromREXPaint(REXPaint_csv)
         this.fromregion(r)
         
+    def copyfrom(s:sprite, copy_pos:bool = true):
+        text_rbuffer = s.text_rbuffer.copy()
+        text_c1buffer = s.text_c1buffer.copy()
+        text_c2buffer = s.text_c2buffer.copy()
+        chr_vecs = s.chr_vecs.copy()
+        extend = s.extend
+        if copy_pos:
+            pos = s.pos
+
     def clone() -> sprite:
         let scopy = sprite{}
         scopy.text_rbuffer = text_rbuffer.copy()
@@ -431,7 +439,6 @@ class sprite:
         scopy.chr_vecs = chr_vecs.copy()
         scopy.extend = extend
         scopy.pos = pos
-        scopy.alpha_chr = alpha_chr
         return scopy
 
     def collisiontest_slow(s:sprite) -> bool:
@@ -905,7 +912,7 @@ class console:
         return cursor_pos_x, cursor_pos_y
         
     // interface to regions and sprites (blit, retrieve screen regions)
-    def blit(r:region, col:int, row:int, blit_cell_color:int):
+    def blit(r:region, col:int, row:int, level:int = 2):
         var portion_x, portion_y = r.extend_x, r.extend_y
         var offset_x, offset_y = 0, 0
         if col + r.extend_x > num_cells_x:
@@ -923,43 +930,59 @@ class console:
         //print "Debug: adjusted row, col: " + col + ", " + row
         //print "Debug: region offsets: " + offset_y + ", " + offset_x
         //print "Debug: region portions: " + portion_y + ", " + portion_x
-        if blit_cell_color:
+        if level == 2:
             for (portion_y) i:
                 for (portion_x) j:
                     let src_idx = (offset_y + i) * r.extend_x + offset_x + j
                     let curr_chr = r.text_rbuffer[src_idx]
-                    if curr_chr != r.alpha_chr :
+                    if curr_chr != r.alpha_chr:
                         let tgt_idx = ulc_buffer_idx + (col + j) + num_cells_x * (row + i)
                         //print "Debug indices: src: " + src_idx + ", tgt: " + tgt_idx
                         text_rbuffer[tgt_idx] = curr_chr
                         text_c1buffer[tgt_idx] = r.text_c1buffer[src_idx]
                         text_c2buffer[tgt_idx] = r.text_c2buffer[src_idx]
-        else:
+        elif level == 1:
             for (portion_y) i:
                 for (portion_x) j:
                     let src_idx = (offset_y + i) * r.extend_x + offset_x + j
                     let curr_chr = r.text_rbuffer[src_idx]
-                    if curr_chr != r.alpha_chr :
+                    if curr_chr != r.alpha_chr:
                         let tgt_idx = ulc_buffer_idx + (col + j) + num_cells_x * (row + i)
                         text_rbuffer[tgt_idx] = curr_chr
                         text_c1buffer[tgt_idx] = r.text_c1buffer[src_idx]
-            
-    def blit(r:region, col:int, row:int):
-        blit(r, col, row, 1)
+        elif level == 0:
+            for (portion_y) i:
+                for (portion_x) j:
+                    let curr_chr = r.text_rbuffer[(offset_y + i) * r.extend_x + offset_x + j]
+                    if curr_chr != r.alpha_chr:
+                        text_rbuffer[ulc_buffer_idx + (col + j) + num_cells_x * (row + i)] = curr_chr
 
-    def blit(s:sprite):
+    def blit(s:sprite, level:int = 2):
         let ulc = xy_i{0, 0}
         let lrc = xy_i{num_cells_x, num_cells_y}
         let chrs = s.chr_vecs
         let screensize = num_cells_x * num_cells_y
         //let within_screen = (s.pos.x < num_cells_x or (s.pos.x  + s.extend_x >= 0)) and (s.pos.y < num_cells_y or (s.pos.y  + s.extend_y >= 0))
-        for (chrs.length) i:
-            let chr_pos = chrs[i] + s.pos
-            if manhattan((chr_pos >= ulc) + (chr_pos < lrc)) == 4: //  true on both in both dims makes 4
-                let tgt_idx = chr_pos.x + num_cells_x * chr_pos.y
-                text_rbuffer[tgt_idx] = s.text_rbuffer[i]
-                text_c1buffer[tgt_idx] = s.text_c1buffer[i]
-                text_c2buffer[tgt_idx] = s.text_c2buffer[i]
+        if level == 2:
+            for (chrs.length) i:
+                let chr_pos = chrs[i] + s.pos
+                if manhattan((chr_pos >= ulc) + (chr_pos < lrc)) == 4: //  true on both in both dims makes 4
+                    let tgt_idx = chr_pos.x + num_cells_x * chr_pos.y
+                    text_rbuffer[tgt_idx] = s.text_rbuffer[i]
+                    text_c1buffer[tgt_idx] = s.text_c1buffer[i]
+                    text_c2buffer[tgt_idx] = s.text_c2buffer[i]
+        elif level == 1:
+            for (chrs.length) i:
+                let chr_pos = chrs[i] + s.pos
+                if manhattan((chr_pos >= ulc) + (chr_pos < lrc)) == 4:
+                    let tgt_idx = chr_pos.x + num_cells_x * chr_pos.y
+                    text_rbuffer[tgt_idx] = s.text_rbuffer[i]
+                    text_c1buffer[tgt_idx] = s.text_c1buffer[i]
+        elif level == 0:
+            for (chrs.length) i:
+                let chr_pos = chrs[i] + s.pos
+                if manhattan((chr_pos >= ulc) + (chr_pos < lrc)) == 4:
+                    text_rbuffer[chr_pos.x + num_cells_x * chr_pos.y] = s.text_rbuffer[i]
 
     def getscreenregion(col1:int, row1:int, col2:int, row2:int) -> region?:
         if not check_col_row_(col1, row1) or not check_col_row_(col2, row2): return
