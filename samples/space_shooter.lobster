@@ -15,8 +15,6 @@ c.init("SpriteTest1", "data/fonts/Px437_IBM/Px437_IBM_BIOS.ttf", gl_window_init_
 class UFO : sprite
     weapon_state = 0
     health_state = 0
-    t_moved = 0.0
-    move_delay = 0.2
 
     def clone() -> UFO:
         let cp = UFO{}
@@ -77,33 +75,30 @@ def place_ufos():
             else:
                 pos_OK = not player.collisiontest(ufo) // 1st UFO we only check for collision with player
 
-
 def move_update_ufos():
-    // move UFOs but so that they don't collide with each other or the player and horizontally towards the player ship
-    let t_now = gl_time()
-    for (UFOs) ufo, i:
-        if (t_now - ufo.t_moved > ufo.move_delay) and (not rnd(500)):
-            var pos_OK = false
-            var player_ufo_collision = false
-            while not pos_OK:
-                let pos_x = ufo.pos.x + 2*(ufo.pos.x < player.pos.x) + rnd(3) - 2 // biased motion towards the player
-                var pos_y = ufo.pos.y + (rnd(3) - 1)
-                while pos_y < 0: pos_y = ufo.pos.y + (rnd(3) - 1) // make sure they don't go out of screen
-                ufo.pos = xy_i{pos_x, pos_y}
-                // test for collisions
-                player_ufo_collision = player.collisiontest(ufo)
-                //if player_ufo_collision:
-                    //player.health_state = 1 // collision with UFO
-                    
-                // BUGGY THIS NEEDS TO TEST ALSO THE OTHER ONES!!!!
-                if i > 0: // nth UFO needs to check for collisions with the n-1 placed beforehand
-                    let collision_info = map(i) j:
-                        ufo.collisiontest(UFOs[j])
-                    pos_OK = not any(collision_info) and not player_ufo_collision
+    // move one UFO but so that the UFOs don't collide with each other or the player and horizontally towards the player ship
+    let ufo_move_idx = rnd(UFO_NUMBER) // this one will move this frame
+    let ufo = UFOs[ufo_move_idx] // pick on UFO
+    var pos_OK = 3 - rnd(4)
+    var player_ufo_collision = false
+    while not pos_OK:
+        let pos_x = ufo.pos.x + 2*(ufo.pos.x < player.pos.x) + rnd(3) - 2 // biased motion towards the player
+        var pos_y = ufo.pos.y + (rnd(3) - 1)
+        while pos_y < 0: pos_y = ufo.pos.y + (rnd(3) - 1) // make sure they don't go out of screen
+        ufo.pos = xy_i{pos_x, pos_y}
+        // test for collisions
+        player_ufo_collision = player.collisiontest(ufo)
+        //if player_ufo_collision:
+            //player.health_state = 1 // collision with UFO
+        let collision_info = map(UFO_NUMBER) i:
+                if i == ufo_move_idx:
+                    false
                 else:
-                    pos_OK = not player_ufo_collision // 1st UFO we only check for collision with player
-            ufo.t_moved = t_now
-        c.blit(ufo)
+                    ufo.collisiontest(UFOs[i])
+        pos_OK = not any(collision_info) and not player_ufo_collision
+    // show them
+    for (UFOs) u:
+        c.blit(u)
 
 def handle_player():
     // helper function to detect collisions
