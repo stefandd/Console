@@ -1,6 +1,7 @@
 import std
 import gl
 import texture
+import color
 
 // crt shader
 let pixshader =
@@ -317,8 +318,8 @@ let cp437_to_unicode:[int] = [
 class region:
 
     text_rbuffer:[int] = []
-    text_c1buffer:[xyzw_f] = []
-    text_c2buffer:[xyzw_f] = []
+    text_c1buffer:[color] = []
+    text_c2buffer:[color] = []
     extend_x = 0
     extend_y = 0
     alpha_chr = 32
@@ -358,8 +359,8 @@ class region:
                     let c2_g = float(string_to_int(substring(args[4], 3, 2), 16)) / 255.0
                     let c2_b = float(string_to_int(substring(args[4], 5, 2), 16)) / 255.0
                     text_rbuffer.push(cp437_to_unicode[chr])
-                    text_c1buffer.push(xyzw_f{c1_r, c1_g, c1_b, 1.0})
-                    text_c2buffer.push(xyzw_f{c2_r, c2_g, c2_b, 1.0})            
+                    text_c1buffer.push(color{c1_r, c1_g, c1_b, 1.0})
+                    text_c2buffer.push(color{c2_r, c2_g, c2_b, 1.0})            
             extend_x = col_max - col_min + 1
             extend_y = row_max - row_min + 1
             assert text_rbuffer.length == extend_x * extend_y
@@ -396,8 +397,8 @@ class region:
 class sprite:
 
     text_rbuffer:[int] = []
-    text_c1buffer:[xyzw_f] = []
-    text_c2buffer:[xyzw_f] = []
+    text_c1buffer:[color] = []
+    text_c2buffer:[color] = []
     chr_vecs:[xy_i] = []
     extend = xy_i{0, 0}
     pos = xy_i{0, 0}
@@ -475,16 +476,16 @@ class console:
     border_cells_y:int = 2
     scale_x:float = 1.0
     scale_y:float = 1.0
-    border_color = xyzw_f{0.3, 0.3, 0.3, 1.0}
+    border_color = color{0.3, 0.3, 0.3, 1.0}
     border_show = false
-    text_color = xyzw_f{0.0, 0.0, 0.0, 1.0}
-    background_color = xyzw_f{0.2, 0.2, 1.0, 1.0}
+    text_color = color_black
+    background_color = color{0.2, 0.2, 1.0, 1.0}
     tab_num_spaces:int = 4
     tab_stops:[int] = [1, 11, 21, 31]
     ulc_buffer_idx:int = 0
     text_rbuffer:[int] = []
-    text_c1buffer:[xyzw_f] = []
-    text_c2buffer:[xyzw_f] = []
+    text_c1buffer:[color] = []
+    text_c2buffer:[color] = []
     cursor_chr = "_"   
     cursor_blink_time:float = 0.5
     cursor_pos_x:int = 1
@@ -650,11 +651,11 @@ class console:
 
     def printxy_print_lv1_(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         var p1_text_rbuffer:[int] = []
-        var p1_text_c1buffer:[xyzw_f] = []
+        var p1_text_c1buffer:[color] = []
         let p2_text_rbuffer:[int] = []
-        let p2_text_c1buffer:[xyzw_f] = []
+        let p2_text_c1buffer:[color] = []
         let n_text_rbuffer:[int] = []
-        let n_text_c1buffer:[xyzw_f] = []
+        let n_text_c1buffer:[color] = []
         let insertpos_buffer_idx = ulc_buffer_idx + col + num_cells_x * row
         var curr_col, curr_row = col, row
         var add_chr, add_chr_tot = 0, 0
@@ -730,14 +731,14 @@ class console:
 
     def printxy_print_lv2_(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         var p1_text_rbuffer:[int] = []
-        var p1_text_c1buffer:[xyzw_f] = []
-        var p1_text_c2buffer:[xyzw_f] = []
+        var p1_text_c1buffer:[color] = []
+        var p1_text_c2buffer:[color] = []
         let p2_text_rbuffer:[int] = []
-        let p2_text_c1buffer:[xyzw_f] = []
-        let p2_text_c2buffer:[xyzw_f] = []        
+        let p2_text_c1buffer:[color] = []
+        let p2_text_c2buffer:[color] = []        
         let n_text_rbuffer:[int] = []
-        let n_text_c1buffer:[xyzw_f] = []
-        let n_text_c2buffer:[xyzw_f] = []
+        let n_text_c1buffer:[color] = []
+        let n_text_c2buffer:[color] = []
         let insertpos_buffer_idx = ulc_buffer_idx + col + num_cells_x * row
         var curr_col, curr_row = col, row
         var add_chr, add_chr_tot = 0, 0
@@ -880,11 +881,11 @@ class console:
             text_rbuffer = map(num_cells):  32 + rnd(64)
         elif level == 1:
             text_rbuffer = map(num_cells):  32 + rnd(64)
-            text_c1buffer = map(num_cells): xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
+            text_c1buffer = map(num_cells): color{rnd_float(), rnd_float(), rnd_float(), 1.0}
         else:
             text_rbuffer = map(num_cells):  32 + rnd(64)
-            text_c1buffer = map(num_cells): xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
-            text_c2buffer = map(num_cells): xyzw_f{rnd_float(), rnd_float(), rnd_float(), 1.0}
+            text_c1buffer = map(num_cells): color{rnd_float(), rnd_float(), rnd_float(), 1.0}
+            text_c2buffer = map(num_cells): color{rnd_float(), rnd_float(), rnd_float(), 1.0}
         ulc_buffer_idx = 0
         cursor_pos_x, cursor_pos_y = 0, 0
         

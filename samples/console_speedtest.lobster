@@ -32,22 +32,22 @@ let c:console = console{border_show : true}
 
 c.init("Test1", "data/fonts/PetMe/PetMe.ttf", gl_window_init_no_vsync)
 fatal(gl_load_materials(pixshader, true))
-c.text_color = xyzw_f{1, 1, 1, 1}
+c.text_color = color_white
 
 t0 = gl_time()
 set_print_decimals(2)
 while c.running:
     let t_now = gl_time()
-    post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
+    //post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
         //gl_set_uniform("time", t_now)
-        c.rnd_screen(2)
-        FPS_deltas += gl_delta_time()
-        FPS_counter++
-        // stats (turn off vsync to measure)
-        if t_now - t0 > 1: // only every 2 secs
-            FPS_avg = FPS_counter/FPS_deltas
-            FPS_counter, FPS_deltas = 0, 0.0
-            t0 = t_now
-        
-        c.writexy(0, 0, "avg. FPS: " + FPS_avg, 1)
-        c.update()
+    c.rnd_screen(2)
+    FPS_deltas += gl_delta_time()
+    FPS_counter++
+    // stats (turn off vsync to measure)
+    if t_now - t0 > 1: // only every 2 secs
+        FPS_avg = FPS_counter/FPS_deltas
+        FPS_counter, FPS_deltas = 0, 0.0
+        t0 = t_now
+    
+    c.writexy(0, 0, "avg. FPS: " + FPS_avg, 1)
+    c.update()
