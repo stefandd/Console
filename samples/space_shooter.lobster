@@ -1,9 +1,12 @@
 import console2 
 import texture
 import color
+import date_time
+import sound_debug
 
 // console setup
 let c:console = console{num_cells_x:40, num_cells_y:40, fontheight:20, fontwidth_:20, lineheight:20}
+c.text_color = color{0.2, 1.0, 0.2, 1}
 c.background_color = color{0.2, 0.2, 1.0, 1}
 c.init("Space Attack", "data/fonts/Px437_IBM/Px437_IBM_BIOS.ttf", gl_window_init_no_vsync)
 
@@ -12,7 +15,6 @@ class UFO : sprite
     weapon_state = 0
     health_state = 0 // 0 - alive, 1 - xplosion 1, 2 - explosion 2
     t_state_chg = 0.0
-
     def clone() -> UFO:
         let cp = UFO{}
         cp.text_rbuffer = text_rbuffer.copy()
@@ -26,7 +28,6 @@ class UFO : sprite
 class Bullet : sprite
     t_moved = 0.0
     move_delay = 0.01
-
     def clone() -> Bullet:
         let cp = Bullet{}
         cp.text_rbuffer = text_rbuffer.copy()
@@ -58,38 +59,40 @@ ufosprite_xp1.fromREXPaint("data/textsprites/ufo_xp1.csv")
 ufosprite_xp2.fromREXPaint("data/textsprites/ufo_xp2.csv")
 let bulletsprite = Bullet{text_rbuffer:[cp437_to_unicode[249]], text_c1buffer:[color_white], text_c2buffer:[c.background_color], chr_vecs:[xy_i{0, 0}]}
 let UFO_NUMBER = 12
-var UFOs:[UFO] = []
+var UFOs:[UFO],last_wave:[UFO] = [], []
 var active_bullets:[Bullet] = []
-var game_over = 0 // 1 -- player won, 2 - player killed
+var game_stage = -1 // -1: pre-stage, 0: stage loaded/paused, 1: stage running, 2: stage over
 var FPS_counter, FPS_sum, FPS_t0 = 0, 0.0, 0.0 // remove me later
 
-def initialize(level:int = 0):
+
+def initialize(difflevel:int = 0, wave_repeat:bool = false):
     // inital placement UFOs
     def place_ufos():
-        for (UFOs) ufo, i:
-            var pos_OK = false
-            while not pos_OK:
-                ufo.pos = xy_i{rnd(c.num_cells_x), rnd(c.num_cells_y / 4) + 2} // put them into the upper third of the screen
-                if i > 0: // 2nd UFO needs to also account for the 1st etc.
-                    let collision_info = map(i) j: ufo.collisiontest(UFOs[j])
-                    pos_OK = not any(collision_info) and not player.collisiontest(ufo)
-                else:
-                    pos_OK = not player.collisiontest(ufo) // 1st UFO we only check for collision with player
+        if wave_repeat:
+            UFOs = map(UFO_NUMBER) i: last_wave[i].clone()
+        else:
+            UFOs = map(UFO_NUMBER): ufo_zero.clone() // many UFOs
+            for (UFOs) ufo, i:
+                var pos_OK = false
+                while not pos_OK:
+                    ufo.pos = xy_i{rnd(c.num_cells_x), rnd(c.num_cells_y / 4) + 2} // put them into the upper third of the screen
+                    if i > 0: // 2nd UFO needs to also account for the 1st etc.
+                        let collision_info = map(i) j: ufo.collisiontest(UFOs[j])
+                        pos_OK = not any(collision_info) and not player.collisiontest(ufo)
+                    else:
+                        pos_OK = not player.collisiontest(ufo) // 1st UFO we only check for collision with player
+            last_wave = map(UFO_NUMBER) i: UFOs[i].clone()
 
     player = Player{}
     player.copyfrom(playersprite, false)
     player.pos = xy_i{ 18, 36}
-    UFOs = map(UFO_NUMBER): ufo_zero.clone() // many UFOs
     active_bullets = []
-    game_over = 0 // 1 -- player won, 2 - player killed
     place_ufos()
-    // background sound
-    let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
-    if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
+    game_stage =  0 // -1: pre-stage, 0: stage loaded/paused, 1: stage running, 2: stage over
     
-def move_update_ufos():
+def update_ufos():
     // move one UFO but so that the UFOs don't collide with each other or the player and horizontally towards the player ship
-    if game_over == 0:
+    if game_stage == 1:
         let UFOs_alive = filter(UFOs) u: u.health_state == 0
         let num_alive = UFOs_alive.length
         if num_alive:
@@ -114,11 +117,11 @@ def move_update_ufos():
                             u.collisiontest(UFOs_alive[i])
                 pos_OK = not any(collision_info) and not player_ufo_collision
         else:
-            game_over = 1 // player won
+            game_stage = 2 // player won
     // update sprite stages and show sprites
     let t_now = gl_time()
     for (UFOs) u:
-        if u.health_state == 1 and t_now - u.t_state_chg > 0.3:
+        if u.health_state == 1 and t_now - u.t_state_chg > 0.2:
             u.health_state = 2
             u.copyfrom(ufosprite_xp2, false)
             u.t_state_chg = t_now            
@@ -127,7 +130,7 @@ def move_update_ufos():
         if u.health_state < 3:
             c.blit(u)
 
-def handle_player():
+def update_player():
     // helper function to detect collisions
     def move_check_collisions(testpos):
         let origpos = player.pos
@@ -138,28 +141,29 @@ def handle_player():
 
     // first check for player health:
     let t_now = gl_time()
-    if player.health_state == 0: // alive
-        if t_now - player.t_moved > player.move_delay: // limit the player key repeat rate
-            if gl_button("right") >= 1:
-                move_check_collisions(xy_i{player.pos.x + 1, player.pos.y})
-            if gl_button("left") >= 1:
-                move_check_collisions(xy_i{player.pos.x - 1, player.pos.y})
-            if gl_button("up") >= 1:
-                move_check_collisions(xy_i{player.pos.x, player.pos.y - 1})
-            if gl_button("down") >= 1:
-                move_check_collisions(xy_i{player.pos.x, player.pos.y + 1})
-            player.t_moved = t_now
-        if t_now - player.t_fired > player.fire_delay:
-            if gl_button("space") >= 1:
-                bulletsprite.pos = player.pos + xy_i{player.bullet_spawn_posx, 0}
-                active_bullets.push(bulletsprite.clone()) // put bullet in active bullets list
-                player.bullet_spawn_posx = 4 - player.bullet_spawn_posx // activate other barrel
-                play_wav("data/sounds/laser_buzz.wav", 0, 1) // make buzzer sound
-                player.t_fired = t_now
-    else:
-        pass() //play_wav("data/sounds/player_killed.wav", 0, 1) // animate explosion etc.
+    if game_stage == 1:
+        if player.health_state == 0: // alive
+            if t_now - player.t_moved > player.move_delay: // limit the player key repeat rate
+                if gl_button("right") >= 1:
+                    move_check_collisions(xy_i{player.pos.x + 1, player.pos.y})
+                if gl_button("left") >= 1:
+                    move_check_collisions(xy_i{player.pos.x - 1, player.pos.y})
+                if gl_button("up") >= 1:
+                    move_check_collisions(xy_i{player.pos.x, player.pos.y - 1})
+                if gl_button("down") >= 1:
+                    move_check_collisions(xy_i{player.pos.x, player.pos.y + 1})
+                player.t_moved = t_now
+            if t_now - player.t_fired > player.fire_delay:
+                if gl_button("space") >= 1:
+                    bulletsprite.pos = player.pos + xy_i{player.bullet_spawn_posx, 0}
+                    active_bullets.push(bulletsprite.clone()) // put bullet in active bullets list
+                    player.bullet_spawn_posx = 4 - player.bullet_spawn_posx // activate other barrel
+                    play_wav("data/sounds/laser_buzz.wav", 0, 1) // make buzzer sound
+                    player.t_fired = t_now
+        else:
+            pass() //play_wav("data/sounds/player_killed.wav", 0, 1) // animate explosion etc.
     //
-    c.blit(player)
+    c.blit(player) // animation to be added here
 
 def update_projectiles():
     // bullet movement
@@ -174,21 +178,32 @@ def update_projectiles():
                 ufo.health_state = 1
                 ufo.copyfrom(ufosprite_xp1, false)
                 ufo.t_state_chg = t_now
-                b.pos = xy_i{-99, -99} // move bullet out of screen to deactive it and have it removed later
+                b.pos = xy_i{-99, -99} // move bullet out of screen to deactive it (it will be removed on the next active bullet filter call)
+                play_wav("data/sounds/player_killed.wav", 0, 1) // explosion sound
         c.blit(b, 1) // level 1 = character and text color
     //for (active_bolts) l:
         //pass()
 
-initialize()
+// background sound
+let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
+if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
 FPS_t0 = gl_time()
 // main loop
 c.run_crt():
     c.clr() 
-    move_update_ufos()
-    update_projectiles()
-    handle_player()
-    //c.sleep(0.05)
-    // stats (turn off vsync to measure)
+    switch game_stage:
+        case 0:
+            c.writexy(0, 0, "Press space to start")
+            if gl_button("space") >= 1: game_stage = 1
+        case 1:
+            update_ufos()
+            update_projectiles()
+            update_player()
+            //c.sleep(0.05)
+            // stats (turn off vsync to measure)
+            c.writexy(0, 0, string(sound_info()), 0)
+        default:
+            c.writexy(0, 0, "Intro")
     FPS_sum += c.FPS
     FPS_counter++
     let t_now = gl_time()
@@ -196,3 +211,7 @@ c.run_crt():
         //print "avg. FPS: " + FPS_sum / FPS_counter
         FPS_t0 = t_now
         FPS_counter, FPS_sum = 0, 0.0
+        if game_stage == -1: // start stage
+            initialize()
+        elif game_stage > 1:
+            initialize(0, true)
