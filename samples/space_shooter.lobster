@@ -73,6 +73,8 @@ var t_seed:int = date_time()[dt_epoch]
 var game_stage = 0 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
 var FPS_counter, FPS_sum, FPS_t0 = 0, 0.0, 0.0 // remove me later
 
+var debugflag = false
+
 def initialize(difflevel:int = 0, wave_repeat:bool = false):
     player = Player{}
     player.copyfrom(playersprite, false) // load undamaged ship
@@ -83,7 +85,6 @@ def initialize(difflevel:int = 0, wave_repeat:bool = false):
     if wave_repeat:
         UFOs = map(UFO_NUMBER) i: UFOs_lw[i].clone()
         for (UFOs) u: u.t_moved = t_now // set move time flag
-        rnd_seed(t_seed) // make sure that even subtle effects are identical
     else:
         UFOs = map(UFO_NUMBER): ufo_zero.clone() // many UFOs
         for (UFOs) u, i: // place UFOs collision-free
@@ -97,9 +98,8 @@ def initialize(difflevel:int = 0, wave_repeat:bool = false):
                     pos_OK = not player.collisiontest(u) // 1st UFO we only check for collision with player
             u.t_moved = t_now // set move time flag
         UFOs_lw = map(UFO_NUMBER) i: UFOs[i].clone() // save the positions of this wave for a potential repeat!
-        t_seed = date_time()[dt_epoch] // save rnd state
-        rnd_seed(t_seed) // make sure that even subtle effects are identical
-    game_stage =  1 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
+        //t_seed = date_time()[dt_epoch] // save rnd state
+        //rnd_seed(t_seed) // make sure that even subtle effects are identical
     
 def kill_player(): // function because we need this in 2 places (UFO collision and laser hit)
     player.health_state = 1
@@ -113,6 +113,8 @@ def update_ufos():
     let num_alive = UFOs_alive.length
     if num_alive:
         let ufo_idx = rnd(num_alive) // this one will move this frame
+        if debugflag:
+            print "First rnd(32000) in UFO: " + rnd(32000) + ", ufo_idx: " + ufo_idx
         let u = UFOs_alive[ufo_idx] // pick on UFO
         // 1st part -- firing at player
         if player.health_state == 0: // shoot at player if they are alive
@@ -126,7 +128,7 @@ def update_ufos():
                 else:
                     let normlz = 1 - (t_now - u.t_fired) / u.fire_delay // color animation showing the heating up of the laser gun
                     u.text_c1buffer[5] = color{1 + (0.74902 - 1) * normlz, 0.74902 * normlz, 0.74902 * normlz, 1}
-            elif rnd(2): // activate with 50% chance
+            elif true: //rnd(2): // activate with 50% chance
                 u.t_fired = t_now
                 u.activated = true
         // 2nd part -- move            
@@ -145,8 +147,11 @@ def update_ufos():
                     kill_player()
                 let collision_info = map(num_alive) i: i != ufo_idx and u.collisiontest(UFOs_alive[i])                                        
                 pos_OK = not any(collision_info) and not player_ufo_collision
-            u.t_moved = t_now        
-    elif active_lasers.length == 0:
+            u.t_moved = t_now
+        if debugflag:
+            print "Second rnd(32000) in UFO: " + rnd(32000)
+            debugflag = false
+    elif active_lasers.length == 0: // decide stage outcome only after last UFO laser bolts are off the screen!
         game_stage = 3 // one side won
     // update sprite stages and show sprites
     for (UFOs) u:
@@ -157,7 +162,7 @@ def update_ufos():
         if u.health_state == 2 and t_now - u.t_state_chg > 0.2:
             u.health_state = 3
         if u.health_state < 3:
-            c.blit(u)
+            c.blit(u, 1)
 
 def update_player():
     // helper function to detect collisions
@@ -199,7 +204,7 @@ def update_player():
     if player.health_state == 2 and t_now - player.t_state_chg > 0.2:
         player.health_state = 3
     if player.health_state < 3:
-        c.blit(player)
+        c.blit(player, 1)
 
 def update_projectiles():
     // bullet movement
@@ -243,23 +248,25 @@ c.run_crt():
             c.writexy(9, 10, "Press <return> to start")
             if gl_button("return") >= 1:
                 game_stage++
-        case 2:
+        case 2,3:
             update_ufos()
             update_projectiles()
             update_player()
-            c.text_color = color_white
-            c.writexy(0, 0, string(sound_info()), 1)
-        case 3:
-            update_ufos()
-            update_projectiles()
-            update_player()
-            c.text_color = color{rnd_float(), rnd_float(), rnd_float(), 1}
-            if player.health_state == 0:
-                c.writexy(5, 10, "Press <return> for next wave")
-            else:
-                c.writexy(4, 10, "Press <return> to retry this wave")
-            if gl_button("return") >= 1:
-                initialize(0, player.health_state != 0) // wave repeat flag based on player health
+            switch game_stage:
+                case 2:
+                    c.text_color = color_white
+                    c.writexy(0, 0, string(sound_info()), 1)
+                case 3:
+                    c.text_color = color{rnd_float(), rnd_float(), rnd_float(), 1}
+                    if player.health_state == 0:
+                        c.writexy(5, 10, "Press <return> for next wave")
+                    else:
+                        c.writexy(4, 10, "Press <return> to retry this wave")
+                    if gl_button("return") >= 1:
+                        initialize(0, player.health_state != 0) // wave repeat flag based on player health
+                        rnd_seed(t_seed) // make sure that even subtle effects are identical
+                        game_stage =  2 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
+                        debugflag = true
             //c.sleep(0.05)
     // stats (turn off vsync to measure)
     FPS_sum += c.FPS
@@ -270,3 +277,6 @@ c.run_crt():
         FPS_counter, FPS_sum = 0, 0.0
         if game_stage == 0: // start stage
             initialize()
+            rnd_seed(t_seed) // make sure that even subtle effects are identical
+            game_stage =  2 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
+            debugflag = true
