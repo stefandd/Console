@@ -10,6 +10,23 @@ c.text_color = color{0.2, 1.0, 0.2, 1}
 c.background_color = color{0.2, 0.2, 0.2, 1}
 c.init("Space Attack -- press ESC to quit", "data/fonts/Px437_IBM/Px437_IBM_BIOS.ttf", gl_window_init_no_vsync)
 
+class IntroClass:
+    t_started = 0.0
+    slice_len = 0
+    cycles = 3
+    txt = "\n\n[INCOMING MESSAGE FROM H.Q.]:\n\n\nWelcome Pilot! You have been recruited\nto defend earth from a fleet of alien\ninvasion ships.\nWe have reliable intel on the strategy\nof the alien ships. The enemy will send waves of remote controlled, self-learn-\ning ships that are equipped with laser\nturrets. In each swarm, more and more\nships will know how to shoot laser bolts,and over time they will improve their\nlaser recharging process, resulting in\nmore rapid fire.\n\nKill as many as you can, soldier!\n\nYour remote controlled viper is moved\nusing the arrow keys and the hyper-\nprojectile gun fires with SPACE.\n\n\n\n\n[PRESS A KEY TO CONTINUE]"
+    cursor = cp437_to_unicode[0xdb]
+    def run():
+        // 169 / 255 / 225 -- color-picked from a screen shot
+        // 163 / 255 / 222
+        // 176 / 255 / 228
+        //c.textcolor = color{0.2, 1.0, 0.6, 1} // nice bright monochrome retro green    
+        //c.background_color = color{0.06667, 0.23922, 0.14902, 1}
+        c.text_color = color{0.66405, 1.0, 0.88235, 1}
+        for (txt.length) i:
+            c.writexy(0, 0, substring(txt, 0, i) + unicode_to_string([cursor]))
+            c.sleep(0.05)
+
 // define objects for UFOs and player
 class UFO : sprite
     health_state = 0 // 0 - alive, 1 - xplosion 1, 2 - explosion 2
@@ -52,7 +69,8 @@ class Player : sprite
     t_moved = 0.0
     move_delay = 0.03
 
-// set up sprites
+// set up sprites / objects
+let intro = IntroClass{}
 var player = Player{}
 let playersprite, playersprite_xp1, playersprite_xp2 = sprite{}, sprite{}, sprite{}
 playersprite.fromREXPaint("data/textsprites/spaceship.csv")
@@ -72,8 +90,6 @@ var t_now = 0.0
 var t_seed:int = date_time()[dt_epoch]
 var game_stage = 0 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
 var FPS_counter, FPS_sum, FPS_t0 = 0, 0.0, 0.0 // remove me later
-
-var debugflag = false
 
 def initialize(difflevel:int = 0, wave_repeat:bool = false):
     player = Player{}
@@ -98,8 +114,6 @@ def initialize(difflevel:int = 0, wave_repeat:bool = false):
                     pos_OK = not player.collisiontest(u) // 1st UFO we only check for collision with player
             u.t_moved = t_now // set move time flag
         UFOs_lw = map(UFO_NUMBER) i: UFOs[i].clone() // save the positions of this wave for a potential repeat!
-        //t_seed = date_time()[dt_epoch] // save rnd state
-        //rnd_seed(t_seed) // make sure that even subtle effects are identical
     
 def kill_player(): // function because we need this in 2 places (UFO collision and laser hit)
     player.health_state = 1
@@ -113,8 +127,6 @@ def update_ufos():
     let num_alive = UFOs_alive.length
     if num_alive:
         let ufo_idx = rnd(num_alive) // this one will move this frame
-        if debugflag:
-            print "First rnd(32000) in UFO: " + rnd(32000) + ", ufo_idx: " + ufo_idx
         let u = UFOs_alive[ufo_idx] // pick on UFO
         // 1st part -- firing at player
         if player.health_state == 0: // shoot at player if they are alive
@@ -148,9 +160,6 @@ def update_ufos():
                 let collision_info = map(num_alive) i: i != ufo_idx and u.collisiontest(UFOs_alive[i])                                        
                 pos_OK = not any(collision_info) and not player_ufo_collision
             u.t_moved = t_now
-        if debugflag:
-            print "Second rnd(32000) in UFO: " + rnd(32000)
-            debugflag = false
     elif active_lasers.length == 0: // decide stage outcome only after last UFO laser bolts are off the screen!
         game_stage = 3 // one side won
     // update sprite stages and show sprites
@@ -242,7 +251,8 @@ c.run_crt():
     t_now = gl_time()
     switch game_stage:
         case 0:
-            c.writexy(17, 10, "Intro")
+            intro.run()
+            game_stage = 1
         case 1:
             c.text_color = color{rnd_float(), rnd_float(), rnd_float(), 1}
             c.writexy(9, 10, "Press <return> to start")
@@ -266,7 +276,6 @@ c.run_crt():
                         initialize(0, player.health_state != 0) // wave repeat flag based on player health
                         rnd_seed(t_seed) // make sure that even subtle effects are identical
                         game_stage =  2 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
-                        debugflag = true
             //c.sleep(0.05)
     // stats (turn off vsync to measure)
     FPS_sum += c.FPS
@@ -279,4 +288,3 @@ c.run_crt():
             initialize()
             rnd_seed(t_seed) // make sure that even subtle effects are identical
             game_stage =  2 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
-            debugflag = true

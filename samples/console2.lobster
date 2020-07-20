@@ -1025,26 +1025,31 @@ class console:
         running = true
 
     def sleep(t:float):
-        if t <= 0.0: return
-        let t_now = gl_time()
-        if using_crt_shader:
-            while gl_frame() and (gl_time() - t_now < t):
-                if gl_button("escape") >= 1 and esc_does_quit: return
-                rescale_() // this also rescales the font
-                post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
-                    gl_ortho(false, false)
+        if running:
+            if t <= 0.0: return
+            let t_now = gl_time()
+            if using_crt_shader:
+                while gl_frame() and (gl_time() - t_now < t):
+                    if gl_button("escape") >= 1 and esc_does_quit:
+                        running = false
+                        break
+                    rescale_() // this also rescales the font
+                    post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
+                        gl_ortho(false, false)
+                        draw_()
+                    gl_set_uniform("time", gl_time())
+            else:
+                while gl_frame() and (gl_time() - t_now < t):
+                    if gl_button("escape") >= 1 and esc_does_quit:
+                        running = false
+                        break   
+                    rescale_() // this also rescales the font
                     draw_()
-                gl_set_uniform("time", gl_time())
-        else:
-            while gl_frame() and (gl_time() - t_now < t):
-                if gl_button("escape") >= 1 and esc_does_quit: return
-                rescale_() // this also rescales the font
-                draw_()
 
     def run(body):
         running = true
         using_crt_shader = false
-        while gl_frame():
+        while gl_frame() and running:
             if gl_button("escape") >= 1 and esc_does_quit:
                 running = false
                 return
@@ -1056,7 +1061,7 @@ class console:
     def run_crt(body):
         running = true
         using_crt_shader = true
-        while gl_frame():
+        while gl_frame() and running:
             if gl_button("escape") >= 1 and esc_does_quit:
                 running = false
                 return
