@@ -984,8 +984,8 @@ class console:
                 if manhattan((chr_pos >= ulc) + (chr_pos < lrc)) == 4:
                     text_rbuffer[chr_pos.x + num_cells_x * chr_pos.y] = s.text_rbuffer[i]
 
-    def getscreenregion(col1:int, row1:int, col2:int, row2:int) -> region?:
-        if not check_col_row_(col1, row1) or not check_col_row_(col2, row2): return
+    def getscreenregion(col1:int, row1:int, col2:int, row2:int) -> region:
+        if not check_col_row_(col1, row1) or not check_col_row_(col2, row2): return region{}
         // swap the parameter orders if col2 is smaller than col1 etc.
         if col1 > col2:
             col1, col2 = col2, col1
@@ -1003,7 +1003,7 @@ class console:
         assert r.text_rbuffer.length == r.extend_x * r.extend_y
         return r
         
-    def getscreen() -> region?:
+    def getscreen() -> region:
         return getscreenregion(0, 0, num_cells_x - 1, num_cells_y - 1)
 
     // management functions
@@ -1024,9 +1024,9 @@ class console:
         clr() // create empty buffer objects of size num_cells_x * num_cells_y
         running = true
 
-    def sleep(t:float):
+    def sleep(t:float = 0.001):
         if running:
-            if t <= 0.0: return
+            if t <= 0.0: t = 0.001
             let t_now = gl_time()
             if using_crt_shader:
                 while gl_frame() and (gl_time() - t_now < t):
@@ -1035,7 +1035,7 @@ class console:
                         break
                     rescale_() // this also rescales the font
                     post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
-                        gl_ortho(false, false)
+                        //gl_ortho(false, false)
                         draw_()
                     gl_set_uniform("time", gl_time())
             else:
@@ -1069,6 +1069,6 @@ class console:
             body()
             rescale_() // this also rescales the font
             post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
-                gl_ortho(false, false)
+                //gl_ortho(false, false)
                 draw_()
             gl_set_uniform("time", gl_time())

@@ -5,28 +5,41 @@ import date_time
 import sound_debug
 
 // console setup
-let c:console = console{num_cells_x:40, num_cells_y:40, fontheight:20, fontwidth_:20, lineheight:20}
+let c:console = console{border_show:true, border_cells_x:2, border_cells_y:2, num_cells_x:40, num_cells_y:40, fontheight:20, fontwidth_:20, lineheight:20}
 c.text_color = color{0.2, 1.0, 0.2, 1}
 c.background_color = color{0.2, 0.2, 0.2, 1}
 c.init("Space Attack -- press ESC to quit", "data/fonts/Px437_IBM/Px437_IBM_BIOS.ttf", gl_window_init_no_vsync)
 
-class IntroClass:
-    t_started = 0.0
-    slice_len = 0
-    cycles = 3
-    txt = "\n\n[INCOMING MESSAGE FROM H.Q.]:\n\n\nWelcome Pilot! You have been recruited\nto defend earth from a fleet of alien\ninvasion ships.\nWe have reliable intel on the strategy\nof the alien ships. The enemy will send waves of remote controlled, self-learn-\ning ships that are equipped with laser\nturrets. In each swarm, more and more\nships will know how to shoot laser bolts,and over time they will improve their\nlaser recharging process, resulting in\nmore rapid fire.\n\nKill as many as you can, soldier!\n\nYour remote controlled viper is moved\nusing the arrow keys and the hyper-\nprojectile gun fires with SPACE.\n\n\n\n\n[PRESS A KEY TO CONTINUE]"
+class Intro:
+    txt = "\n\n[INCOMING MESSAGE FROM H.Q.]:\n\n\nWelcome Pilot! You have been recruited\nto defend earth from a fleet of alien\ninvasion ships.\nWe have reliable intel on the strategy\nof the alien ships. The enemy will send waves of remote controlled, self-learn-\ning ships that are equipped with laser\nturrets. In each swarm, more and more\nships will know how to shoot laser bolts,and over time they will improve their\nlaser recharging process, resulting in\nmore rapid fire.\n\nKill as many as you can, soldier!\n\nYour remote controlled viper is moved\nusing the arrow keys and the hyper-\nprojectile gun fires with SPACE.\n\n\n\n\n[PRESS RETURN TO CONTINUE]"
     cursor = cp437_to_unicode[0xdb]
+    screen_cpy:region = region{}
+    intro_stage = 0
+    
     def run():
-        // 169 / 255 / 225 -- color-picked from a screen shot
-        // 163 / 255 / 222
-        // 176 / 255 / 228
-        //c.textcolor = color{0.2, 1.0, 0.6, 1} // nice bright monochrome retro green    
-        //c.background_color = color{0.06667, 0.23922, 0.14902, 1}
-        c.text_color = color{0.66405, 1.0, 0.88235, 1}
-        for (txt.length) i:
-            c.writexy(0, 0, substring(txt, 0, i) + unicode_to_string([cursor]))
-            c.sleep(0.05)
-
+        if intro_stage == 0:
+            c.text_color = color{0.66405, 1.0, 0.88235, 1}
+            sound_volume(play_wav("data/sounds/AlienNostromoStartup_.wav", 0, 1), 1.0) // explosion sound
+            for (txt.length) i:
+                c.writexy(0, 0, substring(txt, 0, i + 1) + unicode_to_string([cursor]))
+                sound_volume(play_wav("data/sounds/AlienWrite.wav", 0, 1), 0.3) // explosion sound
+                if i <= 34:
+                    c.sleep(0.08)
+                else:
+                    c.sleep(0.02)
+            intro_stage = 1
+            screen_cpy = c.getscreen()
+        elif intro_stage == 1:
+            c.writexy(0, 0, txt + unicode_to_string([cursor]))
+            if gl_button("return") >= 1:
+                intro_stage++
+        else:
+            for (c.num_cells_x) i:
+                c.clr()
+                c.blit(screen_cpy, -i, 0)
+                c.sleep(0.05)
+            intro_stage++
+        
 // define objects for UFOs and player
 class UFO : sprite
     health_state = 0 // 0 - alive, 1 - xplosion 1, 2 - explosion 2
@@ -70,7 +83,7 @@ class Player : sprite
     move_delay = 0.03
 
 // set up sprites / objects
-let intro = IntroClass{}
+let intro = Intro{}
 var player = Player{}
 let playersprite, playersprite_xp1, playersprite_xp2 = sprite{}, sprite{}, sprite{}
 playersprite.fromREXPaint("data/textsprites/spaceship.csv")
@@ -87,7 +100,7 @@ var UFOs:[UFO], UFOs_lw:[UFO] = [], []
 var active_bullets:[Projectile] = []
 var active_lasers:[Projectile] = []
 var t_now = 0.0
-var t_seed:int = date_time()[dt_epoch]
+let t_seed:int = date_time()[dt_epoch]
 var game_stage = 0 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
 var FPS_counter, FPS_sum, FPS_t0 = 0, 0.0, 0.0 // remove me later
 
@@ -136,11 +149,11 @@ def update_ufos():
                     u.text_c1buffer[5] = color{0.74902, 0.74902, 0.74902, 1} // reseting to original color
                     active_lasers.push(lasersprite.clone()) // put bullet in active bullets list
                     play_wav("data/sounds/126423__cabeeno-rossley__shoot-laser_short.wav", 0, 0) // make laser sound
-                    u.t_fired = t_now
+                    u.activated = false
                 else:
                     let normlz = 1 - (t_now - u.t_fired) / u.fire_delay // color animation showing the heating up of the laser gun
                     u.text_c1buffer[5] = color{1 + (0.74902 - 1) * normlz, 0.74902 * normlz, 0.74902 * normlz, 1}
-            elif true: //rnd(2): // activate with 50% chance
+            elif rnd(200) == 0: // activate with 50% chance
                 u.t_fired = t_now
                 u.activated = true
         // 2nd part -- move            
@@ -241,9 +254,6 @@ def update_projectiles():
             l.pos = xy_i{0, c.num_cells_y} // move laser out of screen (it will be removed on the next filter call)
         c.blit(l, 1)
 
-// background sound
-let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
-if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
 FPS_t0 = gl_time()
 // main loop
 c.run_crt():
@@ -252,11 +262,15 @@ c.run_crt():
     switch game_stage:
         case 0:
             intro.run()
-            game_stage = 1
+            if intro.intro_stage > 2:
+                let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
+                if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
+                game_stage = 1
         case 1:
             c.text_color = color{rnd_float(), rnd_float(), rnd_float(), 1}
-            c.writexy(9, 10, "Press <return> to start")
+            c.writexy(9, 10, "PRESS <RETURN> TO START")
             if gl_button("return") >= 1:
+                initialize()
                 game_stage++
         case 2,3:
             update_ufos()
@@ -269,9 +283,9 @@ c.run_crt():
                 case 3:
                     c.text_color = color{rnd_float(), rnd_float(), rnd_float(), 1}
                     if player.health_state == 0:
-                        c.writexy(5, 10, "Press <return> for next wave")
+                        c.writexy(5, 10, "PRESS <RETURN> FOR NEXT WAVE")
                     else:
-                        c.writexy(4, 10, "Press <return> to retry this wave")
+                        c.writexy(4, 10, "PRESS <RETURN> TO REPEAT THIS WAVE")
                     if gl_button("return") >= 1:
                         initialize(0, player.health_state != 0) // wave repeat flag based on player health
                         rnd_seed(t_seed) // make sure that even subtle effects are identical
@@ -284,7 +298,4 @@ c.run_crt():
         print "avg. FPS: " + FPS_sum / FPS_counter
         FPS_t0 = t_now
         FPS_counter, FPS_sum = 0, 0.0
-        if game_stage == 0: // start stage
-            initialize()
-            rnd_seed(t_seed) // make sure that even subtle effects are identical
-            game_stage =  2 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
+            
