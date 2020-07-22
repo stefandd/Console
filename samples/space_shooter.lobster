@@ -312,7 +312,7 @@ c.run_crt():
             update_player()
             switch game_stage:
                 case 2:
-                    c.writexy(0, 38, string(sound_info()), 1) // sound debug info                    
+                    pass() //c.writexy(0, 38, string(sound_info()), 1) // sound debug info
                 case 3:
                     c.text_color = color{rnd_float(), rnd_float(), rnd_float(), 1}
                     if player.health_state == 0:
