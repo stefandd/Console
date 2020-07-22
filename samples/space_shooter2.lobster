@@ -88,8 +88,7 @@ class Player : sprite
     t_moved = 0.0
     move_delay = 0.02
     
-// set up sprites / objects
-let intro = Intro{}
+// sprites, regions
 var player = Player{}
 let playersprite, playersprite_xp1, playersprite_xp2 = sprite{}, sprite{}, sprite{}
 playersprite.fromREXPaint("data/textsprites/spaceship.csv")
@@ -99,10 +98,14 @@ let ufo_zero, ufosprite_xp1, ufosprite_xp2 = UFO{}, sprite{}, sprite{}
 ufo_zero.fromREXPaint("data/textsprites/ufo.csv")
 ufosprite_xp1.fromREXPaint("data/textsprites/ufo_xp1.csv")
 ufosprite_xp2.fromREXPaint("data/textsprites/ufo_xp2.csv")
+let nightsky = region{alpha_chr:-1  }
+nightsky.fromREXPaint("data/textsprites/nightsky.csv")
 let bulletsprite = Projectile{text_rbuffer:[cp437_to_unicode[249]], text_c1buffer:[color_white], text_c2buffer:[c.background_color], chr_vecs:[xy_i{0, 0}], move_delay: 0.01}
 let lasersprite = Projectile{text_rbuffer:['|'], text_c1buffer:[color_red], text_c2buffer:[c.background_color], chr_vecs:[xy_i{0, 0}], move_delay: 0.05}
-let UFO_num = 16
-var UFO_initially_activated = 1
+// other variables
+let intro = Intro{}
+let UFO_num = 6
+var UFO_initially_activated = 0
 var UFOs:[UFO], UFOs_lw:[UFO] = [], []
 var active_bullets:[Projectile] = []
 var active_lasers:[Projectile] = []
@@ -135,7 +138,7 @@ def initialize(wave_repeat:bool = false):
         ufo_zero.activation_thresh = diff_actthresh[min(difficulty, diff_actthresh.length - 1)]
         ufo_zero.fire_delay = diff_firedelay[min(difficulty, diff_firedelay.length - 1)]
         // debug level
-        print "Difficulty " + difficulty + ": " + UFO_initially_activated + ", " + ufo_zero.activation_thresh + ", " + ufo_zero.fire_delay
+        print "Difficulty " + difficulty + ": " + UFO_initially_activated + ", " + ufo_zero.activation_thresh + ", " + ufo_zero.fire_delay        
         UFOs = map(UFO_num): ufo_zero.clone() // many UFOs
         for (UFOs) u, i: // place UFOs collision-free
             var pos_OK = false
@@ -288,7 +291,8 @@ def update_projectiles():
 FPS_t0 = gl_time()
 // main loop
 c.run():
-    c.clr() 
+    c.clr()
+    c.blit(nightsky, 0, 0)
     t_now = gl_time()
     switch game_stage:
         case 0:
@@ -299,7 +303,7 @@ c.run():
                 game_stage = 1
         case 1:
             c.text_color = color{rnd_float(), rnd_float(), rnd_float(), 1}
-            c.writexy(9, 10, "PRESS <RETURN> TO START")
+            c.writexy(9, 10, "PRESS <RETURN> TO START", 1)
             if gl_button("return") >= 1:
                 initialize()
                 game_stage++
@@ -316,9 +320,9 @@ c.run():
                 case 3:
                     c.text_color = color{rnd_float(), rnd_float(), rnd_float(), 1}
                     if player.health_state == 0:
-                        c.writexy(5, 10, "PRESS <RETURN> FOR NEXT WAVE")
+                        c.writexy(5, 10, "PRESS <RETURN> FOR NEXT WAVE", 1)
                     else:
-                        c.writexy(4, 10, "PRESS <RETURN> TO REPEAT THIS WAVE")
+                        c.writexy(4, 10, "PRESS <RETURN> TO REPEAT THIS WAVE", 1)
                     if gl_button("return") >= 1:
                         initialize(player.health_state != 0) // wave repeat flag based on player health
                         rnd_seed(t_seed) // make sure that even subtle effects are identical
