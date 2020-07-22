@@ -4,7 +4,7 @@ import texture
 import color
 
 // crt shader
-let pixshader =
+var pixshader =
 """
 SHADER simplecrt // Shader based on https://the8bitpimp.wordpress.com/2014/07/17/retro-crt-shader/
     VERTEX
