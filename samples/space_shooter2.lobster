@@ -59,7 +59,10 @@ class UFO : sprite
         cp.chr_vecs = chr_vecs.copy()
         cp.extend = extend
         cp.pos = pos
+        // also copy difficulty level-relevant fields
         cp.activation_counter = activation_counter
+        cp.activation_thresh = activation_thresh
+        cp.fire_delay = fire_delay 
         return cp
 
 class Projectile : sprite
@@ -67,7 +70,7 @@ class Projectile : sprite
     move_delay = 0.01 // on slow computers this might mean (as fast as possible)
     def clone() -> Projectile:
         let cp = Projectile{}
-        cp.move_delay = move_delay // need to copy since there are 2 different types of Projectile
+        cp.move_delay = move_delay // need to copy since there are 2 different types of Projectile with diff. speeds
         cp.text_rbuffer = text_rbuffer.copy()
         cp.text_c1buffer = text_c1buffer.copy()
         cp.text_c2buffer = text_c2buffer.copy()
@@ -84,7 +87,7 @@ class Player : sprite
     t_state_chg = 0.0
     t_moved = 0.0
     move_delay = 0.02
-
+    
 // set up sprites / objects
 let intro = Intro{}
 var player = Player{}
@@ -98,18 +101,22 @@ ufosprite_xp1.fromREXPaint("data/textsprites/ufo_xp1.csv")
 ufosprite_xp2.fromREXPaint("data/textsprites/ufo_xp2.csv")
 let bulletsprite = Projectile{text_rbuffer:[cp437_to_unicode[249]], text_c1buffer:[color_white], text_c2buffer:[c.background_color], chr_vecs:[xy_i{0, 0}], move_delay: 0.01}
 let lasersprite = Projectile{text_rbuffer:['|'], text_c1buffer:[color_red], text_c2buffer:[c.background_color], chr_vecs:[xy_i{0, 0}], move_delay: 0.05}
-let UFO_num = 32
-var UFO_initially_activated = 6
+let UFO_num = 16
+var UFO_initially_activated = 1
 var UFOs:[UFO], UFOs_lw:[UFO] = [], []
 var active_bullets:[Projectile] = []
 var active_lasers:[Projectile] = []
 var t_now = 0.0
 let t_seed:int = date_time()[dt_epoch]
 var game_stage = 0 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
+let diff_initact:[int] =     [1, 2, 2, 2, 3  , 3  , 3  , 4  , 4  , 4  , 4  , 4  , 4  , 5  , 5  , 5  , 5  , 5  , 5  , 6  ]
+let diff_actthresh:[int] =   [4, 4, 3, 3, 3  , 3  , 3  , 3  , 3  , 2  , 2  , 2  , 2  , 2  , 2  , 2  , 1]
+let diff_firedelay:[float] = [1, 1, 1, 1, 0.8, 0.8, 0.8, 0.8, 0.8, 0.6, 0.6, 0.6, 0.6, 0.6, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2]
 var difficulty = 0
+var score, score_lw, base_score = 0, 0, 0 // total score, level-based base score for UFO kill
 var FPS_counter, FPS_sum, FPS_t0 = 0, 0.0, 0.0 // remove me later
 
-def initialize(difflevel:int = 0, wave_repeat:bool = false):
+def initialize(wave_repeat:bool = false):
     player = Player{}
     player.copyfrom(playersprite, false) // load undamaged ship
     player.pos = xy_i{ 18, 36}
@@ -118,8 +125,17 @@ def initialize(difflevel:int = 0, wave_repeat:bool = false):
     // inital placement UFOs
     if wave_repeat:
         UFOs = map(UFO_num) i: UFOs_lw[i].clone()
-        for (UFOs) u: u.t_moved = t_now // set move time flag
+        for (UFOs) u: u.t_moved = t_now // reset move time flag on all UFOs
+        score = score_lw // reset score
     else:
+        difficulty++
+        base_score += 10
+        // change the difficulty-related fields in the UFO (ufo_zero) from which all active ones are cloned
+        UFO_initially_activated = diff_initact[min(difficulty, diff_initact.length - 1)]
+        ufo_zero.activation_thresh = diff_actthresh[min(difficulty, diff_actthresh.length - 1)]
+        ufo_zero.fire_delay = diff_firedelay[min(difficulty, diff_firedelay.length - 1)]
+        // debug level
+        print "Difficulty " + difficulty + ": " + UFO_initially_activated + ", " + ufo_zero.activation_thresh + ", " + ufo_zero.fire_delay
         UFOs = map(UFO_num): ufo_zero.clone() // many UFOs
         for (UFOs) u, i: // place UFOs collision-free
             var pos_OK = false
@@ -136,12 +152,13 @@ def initialize(difflevel:int = 0, wave_repeat:bool = false):
             while UFOs[idx].activation_counter: idx = rnd(UFO_num)
             UFOs[idx].activation_counter = UFOs[idx].activation_thresh
         UFOs_lw = map(UFO_num) i: UFOs[i].clone() // save the positions of this wave for a potential repeat!
+        score_lw = score // save score in case a repeat of the wave is necessary
     
 def kill_player(): // function because we need this in 2 places (UFO collision and laser hit)
+    sound_volume(play_wav("data/sounds/player_killed.wav", 0, 1), 1.0) // explosion sound
     player.health_state = 1
     player.copyfrom(playersprite_xp1, false)
     player.t_state_chg = t_now
-    sound_volume(play_wav("data/sounds/player_killed.wav", 0, 1), 1.0) // explosion sound
 
 def update_ufos():
     // move one UFO but so that the UFOs don't collide with each other or the player and horizontally towards the player ship
@@ -223,10 +240,10 @@ def update_player():
             player.t_moved = t_now
         if t_now - player.t_fired > player.fire_delay:
             if gl_button("space") >= 1:
+                play_wav("data/sounds/laser_buzz.wav", 0, 1) // make buzzer sound
                 bulletsprite.pos = player.pos + xy_i{player.bullet_spawn_posx, 0}
                 active_bullets.push(bulletsprite.clone()) // put bullet in active bullets list
                 player.bullet_spawn_posx = 4 - player.bullet_spawn_posx // activate other barrel
-                play_wav("data/sounds/laser_buzz.wav", 0, 1) // make buzzer sound
                 player.t_fired = t_now
     else:
         game_stage = 3 // one side won
@@ -242,7 +259,7 @@ def update_player():
         c.blit(player, 1)
 
 def update_projectiles():
-    // bullet movement
+    // bullet movement (player projectiles)
     active_bullets = filter(active_bullets) ab: (ab.pos.y >= 0)
     for (active_bullets) b:
         if t_now - b.t_moved > b.move_delay:
@@ -250,13 +267,14 @@ def update_projectiles():
             b.t_moved = t_now
         for (UFOs) ufo:
             if b.collisiontest(ufo) and ufo.health_state == 0:
+                play_wav("data/sounds/player_killed.wav", 0, 1) // explosion sound
                 ufo.health_state = 1
                 ufo.copyfrom(ufosprite_xp1, false)
                 ufo.t_state_chg = t_now
                 b.pos = xy_i{0, -1} // move out of screen (it will be removed on the next filter call)
-                play_wav("data/sounds/player_killed.wav", 0, 1) // explosion sound
+                if ufo.activated: score += int(1.5*base_score) else: score += base_score
         c.blit(b, 1) // level 1 = character and text color
-    // laser bolt movement
+    // laser bolt movement (UFO projectiles)
     active_lasers = filter(active_lasers) al: (al.pos.y < c.num_cells_y)
     for (active_lasers) l:
         if t_now - l.t_moved > l.move_delay:
@@ -269,7 +287,7 @@ def update_projectiles():
 
 FPS_t0 = gl_time()
 // main loop
-c.run_crt():
+c.run():
     c.clr() 
     t_now = gl_time()
     switch game_stage:
@@ -291,8 +309,9 @@ c.run_crt():
             update_player()
             switch game_stage:
                 case 2:
-                    //c.text_color = color_white
+                    c.text_color = color_white
                     //c.writexy(0, 0, string(sound_info()), 1)
+                    c.writexy(0, 0, string(score), 1)
                     pass()
                 case 3:
                     c.text_color = color{rnd_float(), rnd_float(), rnd_float(), 1}
@@ -301,7 +320,7 @@ c.run_crt():
                     else:
                         c.writexy(4, 10, "PRESS <RETURN> TO REPEAT THIS WAVE")
                     if gl_button("return") >= 1:
-                        initialize(0, player.health_state != 0) // wave repeat flag based on player health
+                        initialize(player.health_state != 0) // wave repeat flag based on player health
                         rnd_seed(t_seed) // make sure that even subtle effects are identical
                         game_stage =  2 // 0: pre-stage, 1: stage loaded/paused, 2: stage running, 3: stage over
             //c.sleep(0.05)
