@@ -135,8 +135,7 @@ def initialize(wave_repeat:bool = false):
         ufo_zero.fire_delay = diff_firedelay[min(difficulty, diff_firedelay.length - 1)]
         difficulty++
         if difficulty > 20: UFO_num++
-        // debug level
-        print "Difficulty " + difficulty + ": " + UFO_initially_activated + ", " + ufo_zero.activation_thresh + ", " + ufo_zero.fire_delay + ", " + UFO_num
+        //print "Difficulty " + difficulty + ": " + UFO_initially_activated + ", " + ufo_zero.activation_thresh + ", " + ufo_zero.fire_delay + ", " + UFO_num
         UFOs = map(UFO_num): ufo_zero.clone() // many UFOs
         for (UFOs) u, i: // place UFOs collision-free
             var pos_OK = false
