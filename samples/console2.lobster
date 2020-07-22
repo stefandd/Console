@@ -24,7 +24,7 @@ SHADER simplecrt // Shader based on https://the8bitpimp.wordpress.com/2014/07/17
         float r = texture( tex0, vec2( itc.x+o, itc.y+o ) ).x;
         float g = texture( tex0, vec2( itc.x-o, itc.y+o ) ).y;
         float b = texture( tex0, vec2( itc.x  , itc.y-o ) ).z;
-        frag_color = vec4( 0.7f*l*r, l*g, 0.9f*l*b, 1 ) * s;
+        frag_color = vec4( 1.0f*l*r, l*g, 1.0f*l*b, 1 ) * s; // vec4( 0.7f*l*r, l*g, 0.9f*l*b, 1 ) * s;
         //frag_color = vec4( l*r, l*g, l*b, 1) * s;
 """
 
