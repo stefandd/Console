@@ -185,12 +185,13 @@ def update_ufos():
                         u.t_fired = t_now
             // 2nd part -- move attempt
             if t_now - u.t_moved > u.move_delay:
-                let ufo_opos = u.pos
                 var player_ufo_collision = false
-                let pos_x = ufo_opos.x + 2*(ufo_opos.x < player.pos.x) + rnd(3) - 2 // biased motion towards the player
-                var pos_y = ufo_opos.y + (rnd(3) - 1)
-                while pos_y < 0 or pos_y > 3 * (c.num_cells_y / 4): pos_y = ufo_opos.y + (rnd(3) - 1) // make sure they don't go out of screen vertically, horizontally we don't care :)
-                u.pos = xy_i{pos_x, pos_y}
+                let ufo_opos = u.pos
+                if (ufo_opos - player.pos).x > 0:
+                    u.pos = u.pos + xy_i{rnd(3) - 2, rnd(3) - 1} // horizontal motion biased towards the player
+                else:
+                    u.pos = u.pos + xy_i{rnd(3), rnd(3) - 1}
+                while u.pos.y < 0 or u.pos.y > 3 * (c.num_cells_y / 4): u.pos = xy_i{u.pos.x, ufo_opos.y + rnd(3) - 1} // stay in upper 3/4 of screen vertically
                 // test for collisions, first with player
                 player_ufo_collision = player.collisiontest(u) and player.health_state == 0 // UFO does not collide with an already exploding player ship
                 if player_ufo_collision:
@@ -229,15 +230,13 @@ def update_player():
     // first check for player health:
     if player.health_state == 0: // alive
         if t_now - player.t_moved > player.move_delay: // limit the player key repeat rate
-            if gl_button("right") >= 1:
-                move_check_collisions(player.pos + xy_i{1, 0})
-            if gl_button("left") >= 1:
-                move_check_collisions(player.pos - xy_i{1, 0})
-            if gl_button("up") >= 1:
-                move_check_collisions(player.pos - xy_i{0, 1})
-            if gl_button("down") >= 1:
-                if player.pos.y < c.num_cells_y - 2: // don't let the player fully disappear at the screen bottom
-                    move_check_collisions(player.pos + xy_i{0, 1})
+            var newpos = player.pos
+            if gl_button("right") >= 1: newpos += xy_i{1, 0}
+            if gl_button("left") >= 1: newpos -= xy_i{1, 0}
+            if gl_button("up") >= 1: newpos -= xy_i{0, 1}
+            if gl_button("down") >= 1 and player.pos.y < c.num_cells_y - 2:
+                newpos += xy_i{0, 1} // don't let the player fully disappear at the screen bottom
+            move_check_collisions(newpos)
             player.t_moved = t_now
         if t_now - player.t_fired > player.fire_delay:
             if gl_button("space") >= 1:
@@ -292,8 +291,8 @@ c.run_crt():
     t_now = gl_time()
     switch game_stage:
         case 0:
-            intro.run()
-            if intro.intro_stage > 2:
+            //intro.run()
+            //if intro.intro_stage > 2:
                 let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
                 if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
                 game_stage = 1
