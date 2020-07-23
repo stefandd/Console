@@ -104,6 +104,7 @@ let intro = Intro{}
 var UFO_num = 16
 var UFO_initially_activated = 0
 var UFOs:[UFO], UFOs_lw:[UFO] = [], []
+var UFOs_alive:[UFO] = []
 var active_bullets:[Projectile] = []
 var active_lasers:[Projectile] = []
 var t_now = 0.0
@@ -162,7 +163,7 @@ def kill_player(): // function because we need this in 2 places (UFO collision a
 
 def update_ufos():
     // move one UFO but so that the UFOs don't collide with each other or the player and horizontally towards the player ship
-    let UFOs_alive = filter(UFOs) u: u.health_state == 0
+    UFOs_alive = filter(UFOs) u: u.health_state == 0
     let num_alive = UFOs_alive.length
     if num_alive:
         for (UFOs_alive) u, ufo_idx:
@@ -221,7 +222,7 @@ def update_player():
     def move_check_collisions(testpos):
         let origpos = player.pos
         player.pos = testpos
-        let collision_info = map(UFOs) ufo: player.collisiontest(ufo)
+        let collision_info = map(UFOs_alive) ufo: player.collisiontest(ufo)
         if any(collision_info):
             player.pos = origpos // move player back
 
@@ -229,14 +230,14 @@ def update_player():
     if player.health_state == 0: // alive
         if t_now - player.t_moved > player.move_delay: // limit the player key repeat rate
             if gl_button("right") >= 1:
-                move_check_collisions(xy_i{player.pos.x + 1, player.pos.y})
+                move_check_collisions(player.pos + xy_i{1, 0})
             if gl_button("left") >= 1:
-                move_check_collisions(xy_i{player.pos.x - 1, player.pos.y})
+                move_check_collisions(player.pos - xy_i{1, 0})
             if gl_button("up") >= 1:
-                move_check_collisions(xy_i{player.pos.x, player.pos.y - 1})
+                move_check_collisions(player.pos - xy_i{0, 1})
             if gl_button("down") >= 1:
                 if player.pos.y < c.num_cells_y - 2: // don't let the player fully disappear at the screen bottom
-                    move_check_collisions(xy_i{player.pos.x, player.pos.y + 1})
+                    move_check_collisions(player.pos + xy_i{0, 1})
             player.t_moved = t_now
         if t_now - player.t_fired > player.fire_delay:
             if gl_button("space") >= 1:
