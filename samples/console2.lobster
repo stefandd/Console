@@ -2,6 +2,7 @@ import std
 import gl
 import texture
 import color
+import vec
 
 // crt shader
 var pixshader =
@@ -493,7 +494,7 @@ class console:
     text_rbuffer:[int] = []
     text_c1buffer:[color] = []
     text_c2buffer:[color] = []
-    cursor_chr = "_"   
+    cursor_chr = ['_', ' ']
     cursor_blink_time:float = 0.5
     cursor_pos_x:int = 1
     cursor_pos_y:int = 1
@@ -597,64 +598,61 @@ class console:
         var curr_col, curr_row = col, row
         var add_chr, add_chr_tot = 0, 0
         let chr_vec = string_to_unicode(s)
-        if chr_vec:
-            if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
-                p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
-            for (chr_vec) chr:
-                // filter special characters
-                add_chr = 0
-                if chr == 9: // \t
-                    for (tab_num_spaces):
-                        n_text_rbuffer.push(32)
-                    add_chr += tab_num_spaces
-                elif chr == 10: // \n
-                    for (num_cells_x - curr_col):
-                        n_text_rbuffer.push(32)
-                    add_chr += num_cells_x - curr_col
-                elif chr == 13: // \r
-                    pass() // ignore
-                else:
-                    n_text_rbuffer.push(chr)
-                    add_chr++
-                // advance cursor position
-                if curr_col + add_chr < num_cells_x:
-                    curr_col += add_chr
-                else:
-                    curr_col = 0
-                    curr_row++
-                add_chr_tot += add_chr
-            // additional spaces for any newly started row to prefill the buffer full rows
-            if curr_row > row:
-                    for (num_cells_x - curr_col):
-                        n_text_rbuffer.push(32)
-                    add_chr_tot += num_cells_x - curr_col
-            // the asserts are bug test
-            if curr_row != row:
-                assert (col + num_cells_x * row + add_chr_tot) % num_cells_x == 0
-                assert (insertpos_buffer_idx + add_chr_tot) % num_cells_x == 0            
-            // decide how to modify the class buffers
-            assert n_text_rbuffer.length == add_chr_tot
-            if insertpos_buffer_idx > 0:
-                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
-                    text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
-                else:
-                    text_rbuffer = append(p1_text_rbuffer, append(n_text_rbuffer, slice(text_rbuffer, insertpos_buffer_idx + add_chr_tot, -1)))
+        if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
+            p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
+        for (chr_vec) chr:
+            // filter special characters
+            add_chr = 0
+            if chr == 9: // \t
+                for (tab_num_spaces):
+                    n_text_rbuffer.push(32)
+                add_chr += tab_num_spaces
+            elif chr == 10: // \n
+                for (num_cells_x - curr_col):
+                    n_text_rbuffer.push(32)
+                add_chr += num_cells_x - curr_col
+            elif chr == 13: // \r
+                pass() // ignore
             else:
-                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
-                    text_rbuffer = n_text_rbuffer
-                else:
-                    text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
-            // update cursor position
-            if (insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length) and autoscroll: // can we just overwrite the current buffers with the new text?
-                ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
-                cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1
+                n_text_rbuffer.push(chr)
+                add_chr++
+            // advance cursor position
+            if curr_col + add_chr < num_cells_x:
+                curr_col += add_chr
             else:
-                cursor_pos_x, cursor_pos_y = curr_col, curr_row
-            // more tests
-            assert text_rbuffer.length % num_cells_x == 0
-            return true
+                curr_col = 0
+                curr_row++
+            add_chr_tot += add_chr
+        // additional spaces for any newly started row to prefill the buffer full rows
+        if curr_row > row:
+                for (num_cells_x - curr_col):
+                    n_text_rbuffer.push(32)
+                add_chr_tot += num_cells_x - curr_col
+        // the asserts are bug test
+        if curr_row != row:
+            assert (col + num_cells_x * row + add_chr_tot) % num_cells_x == 0
+            assert (insertpos_buffer_idx + add_chr_tot) % num_cells_x == 0            
+        // decide how to modify the class buffers
+        assert n_text_rbuffer.length == add_chr_tot
+        if insertpos_buffer_idx > 0:
+            if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
+                text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
+            else:
+                text_rbuffer = append(p1_text_rbuffer, append(n_text_rbuffer, slice(text_rbuffer, insertpos_buffer_idx + add_chr_tot, -1)))
         else:
-            return false
+            if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
+                text_rbuffer = n_text_rbuffer
+            else:
+                text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
+        // update cursor position
+        if (insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length) and autoscroll: // can we just overwrite the current buffers with the new text?
+            ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
+            cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1
+        else:
+            cursor_pos_x, cursor_pos_y = curr_col, curr_row
+        // more tests
+        assert text_rbuffer.length % num_cells_x == 0
+        return true
 
     def printxy_print_lv1_(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         var p1_text_rbuffer:[int] = []
@@ -667,74 +665,71 @@ class console:
         var curr_col, curr_row = col, row
         var add_chr, add_chr_tot = 0, 0
         let chr_vec = string_to_unicode(s)
-        if chr_vec:
-            if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
-                p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
-                p1_text_c1buffer = slice(text_c1buffer, 0, insertpos_buffer_idx)
-            for (chr_vec) chr:
-                // filter special characters
-                add_chr = 0
-                if chr == 9: // \t
-                    for (tab_num_spaces):
-                        n_text_rbuffer.push(32)
-                        n_text_c1buffer.push(text_color)
-                    add_chr += tab_num_spaces
-                elif chr == 10: // \n
-                    for (num_cells_x - curr_col):
-                        n_text_rbuffer.push(32)
-                        n_text_c1buffer.push(text_color)
-                    add_chr += num_cells_x - curr_col
-                elif chr == 13: // \r
-                    pass() // ignore
-                else:
-                    n_text_rbuffer.push(chr)
+        if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
+            p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
+            p1_text_c1buffer = slice(text_c1buffer, 0, insertpos_buffer_idx)
+        for (chr_vec) chr:
+            // filter special characters
+            add_chr = 0
+            if chr == 9: // \t
+                for (tab_num_spaces):
+                    n_text_rbuffer.push(32)
                     n_text_c1buffer.push(text_color)
-                    add_chr++
-                // advance cursor position
-                if curr_col + add_chr < num_cells_x:
-                    curr_col += add_chr
-                else:
-                    curr_col = 0
-                    curr_row++
-                add_chr_tot += add_chr
-            // additional spaces for any newly started row to prefill the buffer full rows
-            if curr_row > row:
-                    for (num_cells_x - curr_col):
-                        n_text_rbuffer.push(32)
-                        n_text_c1buffer.push(text_color)
-                    add_chr_tot += num_cells_x - curr_col
-            // the asserts are bug test
-            if curr_row != row:
-                assert (col + num_cells_x * row + add_chr_tot) % num_cells_x == 0
-                assert (insertpos_buffer_idx + add_chr_tot) % num_cells_x == 0            
-            // decide how to modify the class buffers
-            assert n_text_rbuffer.length == add_chr_tot
-            if insertpos_buffer_idx > 0:
-                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
-                    text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
-                    text_c1buffer = append(p1_text_c1buffer, n_text_c1buffer)
-                else:
-                    text_rbuffer = append(p1_text_rbuffer, append(n_text_rbuffer, slice(text_rbuffer, insertpos_buffer_idx + add_chr_tot, -1)))
-                    text_c1buffer = append(p1_text_c1buffer, append(n_text_c1buffer, slice(text_c1buffer, insertpos_buffer_idx + add_chr_tot, -1)))
+                add_chr += tab_num_spaces
+            elif chr == 10: // \n
+                for (num_cells_x - curr_col):
+                    n_text_rbuffer.push(32)
+                    n_text_c1buffer.push(text_color)
+                add_chr += num_cells_x - curr_col
+            elif chr == 13: // \r
+                pass() // ignore
             else:
-                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
-                    text_rbuffer = n_text_rbuffer
-                    text_c1buffer = n_text_c1buffer
-                else:
-                    text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
-                    text_c1buffer = append(n_text_c1buffer, slice(text_c1buffer, add_chr_tot, -1))
-            // update cursor position
-            if (insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length) and autoscroll: // can we just overwrite the current buffers with the new text?
-                ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
-                cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1
+                n_text_rbuffer.push(chr)
+                n_text_c1buffer.push(text_color)
+                add_chr++
+            // advance cursor position
+            if curr_col + add_chr < num_cells_x:
+                curr_col += add_chr
             else:
-                cursor_pos_x, cursor_pos_y = curr_col, curr_row
-            // more tests
-            assert text_rbuffer.length % num_cells_x == 0
-            assert text_rbuffer.length == text_c1buffer.length
-            return true
+                curr_col = 0
+                curr_row++
+            add_chr_tot += add_chr
+        // additional spaces for any newly started row to prefill the buffer full rows
+        if curr_row > row:
+                for (num_cells_x - curr_col):
+                    n_text_rbuffer.push(32)
+                    n_text_c1buffer.push(text_color)
+                add_chr_tot += num_cells_x - curr_col
+        // the asserts are bug test
+        if curr_row != row:
+            assert (col + num_cells_x * row + add_chr_tot) % num_cells_x == 0
+            assert (insertpos_buffer_idx + add_chr_tot) % num_cells_x == 0            
+        // decide how to modify the class buffers
+        assert n_text_rbuffer.length == add_chr_tot
+        if insertpos_buffer_idx > 0:
+            if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
+                text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
+                text_c1buffer = append(p1_text_c1buffer, n_text_c1buffer)
+            else:
+                text_rbuffer = append(p1_text_rbuffer, append(n_text_rbuffer, slice(text_rbuffer, insertpos_buffer_idx + add_chr_tot, -1)))
+                text_c1buffer = append(p1_text_c1buffer, append(n_text_c1buffer, slice(text_c1buffer, insertpos_buffer_idx + add_chr_tot, -1)))
         else:
-            return false
+            if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
+                text_rbuffer = n_text_rbuffer
+                text_c1buffer = n_text_c1buffer
+            else:
+                text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
+                text_c1buffer = append(n_text_c1buffer, slice(text_c1buffer, add_chr_tot, -1))
+        // update cursor position
+        if (insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length) and autoscroll: // can we just overwrite the current buffers with the new text?
+            ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
+            cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1
+        else:
+            cursor_pos_x, cursor_pos_y = curr_col, curr_row
+        // more tests
+        assert text_rbuffer.length % num_cells_x == 0
+        assert text_rbuffer.length == text_c1buffer.length
+        return true
 
     def printxy_print_lv2_(col:int, row:int, s:string): // operands of col row must be checked before this is called; should also not call on empty strings
         var p1_text_rbuffer:[int] = []
@@ -750,83 +745,80 @@ class console:
         var curr_col, curr_row = col, row
         var add_chr, add_chr_tot = 0, 0
         let chr_vec = string_to_unicode(s)
-        if chr_vec:
-            if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
-                p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
-                p1_text_c1buffer = slice(text_c1buffer, 0, insertpos_buffer_idx)
-                p1_text_c2buffer = slice(text_c2buffer, 0, insertpos_buffer_idx)
-            for (chr_vec) chr:
-                // filter special characters
-                add_chr = 0
-                if chr == 9: // \t
-                    for (tab_num_spaces):
-                        n_text_rbuffer.push(32)
-                        n_text_c1buffer.push(text_color)
-                        n_text_c2buffer.push(background_color)
-                    add_chr += tab_num_spaces
-                elif chr == 10: // \n
-                    for (num_cells_x - curr_col):
-                        n_text_rbuffer.push(32)
-                        n_text_c1buffer.push(text_color)
-                        n_text_c2buffer.push(background_color)
-                    add_chr += num_cells_x - curr_col
-                elif chr == 13: // \r
-                    pass() // ignore
-                else:
-                    n_text_rbuffer.push(chr)
+        if insertpos_buffer_idx > 0: // first save the buffer objects before the cursor position
+            p1_text_rbuffer = slice(text_rbuffer, 0, insertpos_buffer_idx)
+            p1_text_c1buffer = slice(text_c1buffer, 0, insertpos_buffer_idx)
+            p1_text_c2buffer = slice(text_c2buffer, 0, insertpos_buffer_idx)
+        for (chr_vec) chr:
+            // filter special characters
+            add_chr = 0
+            if chr == 9: // \t
+                for (tab_num_spaces):
+                    n_text_rbuffer.push(32)
                     n_text_c1buffer.push(text_color)
                     n_text_c2buffer.push(background_color)
-                    add_chr++
-                // advance cursor position
-                if curr_col + add_chr < num_cells_x:
-                    curr_col += add_chr
-                else:
-                    curr_col = 0
-                    curr_row++
-                add_chr_tot += add_chr
-            // additional spaces for any newly started row to prefill the buffer full rows
-            if curr_row > row:
-                    for (num_cells_x - curr_col):
-                        n_text_rbuffer.push(32)
-                        n_text_c1buffer.push(text_color)
-                        n_text_c2buffer.push(background_color)
-                    add_chr_tot += num_cells_x - curr_col
-            // the asserts are bug test
-            if curr_row != row:
-                assert (col + num_cells_x * row + add_chr_tot) % num_cells_x == 0
-                assert (insertpos_buffer_idx + add_chr_tot) % num_cells_x == 0            
-            // decide how to modify the class buffers
-            assert n_text_rbuffer.length == add_chr_tot
-            if insertpos_buffer_idx > 0:
-                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
-                    text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
-                    text_c1buffer = append(p1_text_c1buffer, n_text_c1buffer)
-                    text_c2buffer = append(p1_text_c2buffer, n_text_c2buffer)
-                else:
-                    text_rbuffer = append(p1_text_rbuffer, append(n_text_rbuffer, slice(text_rbuffer, insertpos_buffer_idx + add_chr_tot, -1)))
-                    text_c1buffer = append(p1_text_c1buffer, append(n_text_c1buffer, slice(text_c1buffer, insertpos_buffer_idx + add_chr_tot, -1)))
-                    text_c2buffer = append(p1_text_c2buffer, append(n_text_c2buffer, slice(text_c2buffer, insertpos_buffer_idx + add_chr_tot, -1)))
+                add_chr += tab_num_spaces
+            elif chr == 10: // \n
+                for (num_cells_x - curr_col):
+                    n_text_rbuffer.push(32)
+                    n_text_c1buffer.push(text_color)
+                    n_text_c2buffer.push(background_color)
+                add_chr += num_cells_x - curr_col
+            elif chr == 13: // \r
+                pass() // ignore
             else:
-                if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
-                    text_rbuffer = n_text_rbuffer
-                    text_c1buffer = n_text_c1buffer
-                    text_c2buffer = n_text_c2buffer
-                else:
-                    text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
-                    text_c1buffer = append(n_text_c1buffer, slice(text_c1buffer, add_chr_tot, -1))
-                    text_c2buffer = append(n_text_c2buffer, slice(text_c2buffer, add_chr_tot, -1))
-            // update cursor position
-            if (insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length) and autoscroll: // can we just overwrite the current buffers with the new text?
-                ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
-                cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1
+                n_text_rbuffer.push(chr)
+                n_text_c1buffer.push(text_color)
+                n_text_c2buffer.push(background_color)
+                add_chr++
+            // advance cursor position
+            if curr_col + add_chr < num_cells_x:
+                curr_col += add_chr
             else:
-                cursor_pos_x, cursor_pos_y = curr_col, curr_row
-            // more tests
-            assert text_rbuffer.length % num_cells_x == 0
-            assert text_rbuffer.length == text_c1buffer.length and text_rbuffer.length == text_c2buffer.length
-            return true
+                curr_col = 0
+                curr_row++
+            add_chr_tot += add_chr
+        // additional spaces for any newly started row to prefill the buffer full rows
+        if curr_row > row:
+                for (num_cells_x - curr_col):
+                    n_text_rbuffer.push(32)
+                    n_text_c1buffer.push(text_color)
+                    n_text_c2buffer.push(background_color)
+                add_chr_tot += num_cells_x - curr_col
+        // the asserts are bug test
+        if curr_row != row:
+            assert (col + num_cells_x * row + add_chr_tot) % num_cells_x == 0
+            assert (insertpos_buffer_idx + add_chr_tot) % num_cells_x == 0            
+        // decide how to modify the class buffers
+        assert n_text_rbuffer.length == add_chr_tot
+        if insertpos_buffer_idx > 0:
+            if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
+                text_rbuffer = append(p1_text_rbuffer, n_text_rbuffer)
+                text_c1buffer = append(p1_text_c1buffer, n_text_c1buffer)
+                text_c2buffer = append(p1_text_c2buffer, n_text_c2buffer)
+            else:
+                text_rbuffer = append(p1_text_rbuffer, append(n_text_rbuffer, slice(text_rbuffer, insertpos_buffer_idx + add_chr_tot, -1)))
+                text_c1buffer = append(p1_text_c1buffer, append(n_text_c1buffer, slice(text_c1buffer, insertpos_buffer_idx + add_chr_tot, -1)))
+                text_c2buffer = append(p1_text_c2buffer, append(n_text_c2buffer, slice(text_c2buffer, insertpos_buffer_idx + add_chr_tot, -1)))
         else:
-            return false
+            if insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length: // can we just overwrite the current buffers with the new text?
+                text_rbuffer = n_text_rbuffer
+                text_c1buffer = n_text_c1buffer
+                text_c2buffer = n_text_c2buffer
+            else:
+                text_rbuffer = append(n_text_rbuffer, slice(text_rbuffer, add_chr_tot, -1))
+                text_c1buffer = append(n_text_c1buffer, slice(text_c1buffer, add_chr_tot, -1))
+                text_c2buffer = append(n_text_c2buffer, slice(text_c2buffer, add_chr_tot, -1))
+        // update cursor position
+        if (insertpos_buffer_idx + add_chr_tot >= text_rbuffer.length) and autoscroll: // can we just overwrite the current buffers with the new text?
+            ulc_buffer_idx = insertpos_buffer_idx + add_chr_tot - num_cells_x * num_cells_y
+            cursor_pos_x, cursor_pos_y = curr_col, num_cells_y - 1
+        else:
+            cursor_pos_x, cursor_pos_y = curr_col, curr_row
+        // more tests
+        assert text_rbuffer.length % num_cells_x == 0
+        assert text_rbuffer.length == text_c1buffer.length and text_rbuffer.length == text_c2buffer.length
+        return true
 
     def writexy(col:int, row:int, s:string, level:int = 2): // operands of col row must be checked before this is called; should also not call on empty strings
         if not check_col_row_(col, row): return
@@ -852,6 +844,41 @@ class console:
             printxy_print_lv1_(cursor_pos_x, cursor_pos_y, s + '\n')
         else:
             printxy_print_lv2_(cursor_pos_x, cursor_pos_y, s + '\n')
+            
+    def inputxy(col:int, row:int, p:string, min_length:int = 0, level:int = 2) -> string:
+        if not check_col_row_(col, row): return
+        gl_start_text_input(xy_0i, xy_0i)
+        var text = ""
+        let initial_ulc = ulc_buffer_idx
+        var cursor_idx = 0
+        var t_blink = gl_time()
+        while gl_button("return") < 1 or text.length < min_length:
+            text = gl_text_input_state()
+            var add_space_char = false
+            if gl_button("escape") >= 1 and esc_does_quit:
+                running = false
+                return ""
+            if gl_key_repeat("backspace") == 1 and text.length:
+                text = substring(text, 0, text.length - 1)
+                gl_set_text_input(text)
+                add_space_char = true
+            ulc_buffer_idx = initial_ulc
+            let outstr = p + text
+            writexy(col, row, outstr)
+            let add_lines = (string_to_unicode(outstr).length + col) / num_cells_x + row - (num_cells_y - 1)// how many lines have we had to scroll?
+            if add_lines > 0: // correct buffer index to make sure we scroll back when we backspace...
+                ulc_buffer_idx = initial_ulc + num_cells_x * add_lines
+                cursor_pos_y = num_cells_y - 1
+            if gl_time() - t_blink > cursor_blink_time: // blinking cursor
+                cursor_idx = 1 - cursor_idx
+                t_blink = gl_time()
+            let cursor_buffidx = ulc_buffer_idx + cursor_pos_x + num_cells_x * cursor_pos_y
+            text_rbuffer[cursor_buffidx] = cursor_chr[cursor_idx]
+            if add_space_char:
+                text_rbuffer[cursor_buffidx + 1] = 32
+            sleep()
+        gl_end_text_input()
+        return text
         
     def clreol(level:int = 2):
         let base_idx = ulc_buffer_idx + cursor_pos_x + num_cells_x * cursor_pos_y
