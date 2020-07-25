@@ -845,7 +845,7 @@ class console:
         else:
             printxy_print_lv2_(cursor_pos_x, cursor_pos_y, s + '\n')
             
-    def inputxy(col:int, row:int, p:string, min_length:int = 0, level:int = 2) -> string:
+    def inputxy(col:int, row:int, p:string, min_length:int = 0, max_length:int = 1024, level:int = 2) -> string:
         if not check_col_row_(col, row): return
         gl_start_text_input(xy_0i, xy_0i)
         var text = ""
@@ -854,6 +854,8 @@ class console:
         var t_blink = gl_time()
         while gl_button("return") < 1 or text.length < min_length:
             text = gl_text_input_state()
+            if text.length > max_length:
+                text = substring(text, 0, max_length)
             var add_space_char = false
             if gl_button("escape") >= 1 and esc_does_quit:
                 running = false
@@ -864,7 +866,7 @@ class console:
                 add_space_char = true
             ulc_buffer_idx = initial_ulc
             let outstr = p + text
-            writexy(col, row, outstr)
+            writexy(col, row, outstr, level)
             let add_lines = (string_to_unicode(outstr).length + col) / num_cells_x + row - (num_cells_y - 1)// how many lines have we had to scroll?
             if add_lines > 0: // correct buffer index to make sure we scroll back when we backspace...
                 ulc_buffer_idx = initial_ulc + num_cells_x * add_lines
