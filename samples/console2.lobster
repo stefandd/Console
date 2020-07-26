@@ -603,19 +603,20 @@ class console:
         for (chr_vec) chr:
             // filter special characters
             add_chr = 0
-            if chr == 9: // \t
-                for (tab_num_spaces):
-                    n_text_rbuffer.push(32)
-                add_chr += tab_num_spaces
-            elif chr == 10: // \n
-                for (num_cells_x - curr_col):
-                    n_text_rbuffer.push(32)
-                add_chr += num_cells_x - curr_col
-            elif chr == 13: // \r
-                pass() // ignore
-            else:
-                n_text_rbuffer.push(chr)
-                add_chr++
+            switch chr:
+                case 9: // \t
+                    for (tab_num_spaces):
+                        n_text_rbuffer.push(32)
+                    add_chr += tab_num_spaces
+                case 10: // \n
+                    for (num_cells_x - curr_col):
+                        n_text_rbuffer.push(32)
+                    add_chr += num_cells_x - curr_col
+                case 13: // \r
+                    pass() // ignore
+                default:
+                    n_text_rbuffer.push(chr)
+                    add_chr++
             // advance cursor position
             if curr_col + add_chr < num_cells_x:
                 curr_col += add_chr
@@ -671,22 +672,23 @@ class console:
         for (chr_vec) chr:
             // filter special characters
             add_chr = 0
-            if chr == 9: // \t
-                for (tab_num_spaces):
-                    n_text_rbuffer.push(32)
+            switch chr:
+                case 9: // \t
+                    for (tab_num_spaces):
+                        n_text_rbuffer.push(32)
+                        n_text_c1buffer.push(text_color)
+                    add_chr += tab_num_spaces
+                case 10: // \n
+                    for (num_cells_x - curr_col):
+                        n_text_rbuffer.push(32)
+                        n_text_c1buffer.push(text_color)
+                    add_chr += num_cells_x - curr_col
+                case 13: // \r
+                    pass() // ignore
+                default:
+                    n_text_rbuffer.push(chr)
                     n_text_c1buffer.push(text_color)
-                add_chr += tab_num_spaces
-            elif chr == 10: // \n
-                for (num_cells_x - curr_col):
-                    n_text_rbuffer.push(32)
-                    n_text_c1buffer.push(text_color)
-                add_chr += num_cells_x - curr_col
-            elif chr == 13: // \r
-                pass() // ignore
-            else:
-                n_text_rbuffer.push(chr)
-                n_text_c1buffer.push(text_color)
-                add_chr++
+                    add_chr++
             // advance cursor position
             if curr_col + add_chr < num_cells_x:
                 curr_col += add_chr
@@ -752,25 +754,26 @@ class console:
         for (chr_vec) chr:
             // filter special characters
             add_chr = 0
-            if chr == 9: // \t
-                for (tab_num_spaces):
-                    n_text_rbuffer.push(32)
+            switch chr:
+                case 9: // \t
+                    for (tab_num_spaces):
+                        n_text_rbuffer.push(32)
+                        n_text_c1buffer.push(text_color)
+                        n_text_c2buffer.push(background_color)
+                    add_chr += tab_num_spaces
+                case 10: // \n
+                    for (num_cells_x - curr_col):
+                        n_text_rbuffer.push(32)
+                        n_text_c1buffer.push(text_color)
+                        n_text_c2buffer.push(background_color)
+                    add_chr += num_cells_x - curr_col
+                case 13: // \r
+                    pass() // ignore
+                default:
+                    n_text_rbuffer.push(chr)
                     n_text_c1buffer.push(text_color)
                     n_text_c2buffer.push(background_color)
-                add_chr += tab_num_spaces
-            elif chr == 10: // \n
-                for (num_cells_x - curr_col):
-                    n_text_rbuffer.push(32)
-                    n_text_c1buffer.push(text_color)
-                    n_text_c2buffer.push(background_color)
-                add_chr += num_cells_x - curr_col
-            elif chr == 13: // \r
-                pass() // ignore
-            else:
-                n_text_rbuffer.push(chr)
-                n_text_c1buffer.push(text_color)
-                n_text_c2buffer.push(background_color)
-                add_chr++
+                    add_chr++
             // advance cursor position
             if curr_col + add_chr < num_cells_x:
                 curr_col += add_chr

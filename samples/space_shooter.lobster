@@ -24,7 +24,7 @@ class Intro:
                 if i <= 34: // header line a bit slower
                     c.sleep(0.08)
                 else:
-                    c.sleep(0.02)
+                    c.sleep(0.01)
             screen_cpy = c.getscreen()
             intro_stage = 1
         elif intro_stage == 1: // wait for ENTER to be pressed
@@ -135,8 +135,7 @@ def initialize(wave_repeat:bool = false):
         ufo_zero.activation_thresh = diff_actthresh[min(difficulty, diff_actthresh.length - 1)]
         ufo_zero.fire_delay = diff_firedelay[min(difficulty, diff_firedelay.length - 1)]
         difficulty++
-        if difficulty > 20: UFO_num++
-        //print "Difficulty " + difficulty + ": " + UFO_initially_activated + ", " + ufo_zero.activation_thresh + ", " + ufo_zero.fire_delay + ", " + UFO_num
+        if difficulty > 20: UFO_num++ // make it really impossible to win by adding more UFOs past lvl 20
         UFOs = map(UFO_num): ufo_zero.clone() // many UFOs
         for (UFOs) u, i: // place UFOs collision-free
             var pos_OK = false
@@ -168,41 +167,36 @@ def update_ufos():
     if num_alive:
         for (UFOs_alive) u, ufo_idx:
             // 1st part -- firing at player
-            if player.health_state == 0: // shoot at player if they are alive
-                if u.activated:
-                    if t_now - u.t_fired > u.fire_delay:
-                        lasersprite.pos = u.pos + xy_i{2, 2}
-                        u.text_c1buffer[5] = color{0.74902, 0.74902, 0.74902, 1} // reseting to original color
-                        active_lasers.push(lasersprite.clone()) // put bullet in active bullets list
-                        play_wav("data/sounds/126423__cabeeno-rossley__shoot-laser_short.wav", 0, 0) // make laser sound
-                        u.t_fired = t_now
-                    else:
-                        let normlz = 1 - (t_now - u.t_fired) / u.fire_delay // color animation showing the heating up of the laser gun
-                        u.text_c1buffer[5] = color{1 + (0.74902 - 1) * normlz, 0.74902 * normlz, 0.74902 * normlz, 1} // laser pod is the 6th character
+            if u.activated:
+                if t_now - u.t_fired > u.fire_delay and player.health_state == 0: // shoot at player if they are alive
+                    lasersprite.pos = u.pos + xy_i{2, 2}
+                    u.text_c1buffer[5] = color{0.74902, 0.74902, 0.74902, 1} // reseting to original color
+                    active_lasers.push(lasersprite.clone()) // put bullet in active bullets list
+                    play_wav("data/sounds/126423__cabeeno-rossley__shoot-laser_short.wav", 0, 0) // make laser sound
+                    u.t_fired = t_now
                 else:
-                    if u.activation_counter >= u.activation_thresh:
-                        u.activated = true
-                        u.t_fired = t_now
+                    let normlz = 1 - (t_now - u.t_fired) / u.fire_delay // color animation showing the heating up of the laser gun
+                    u.text_c1buffer[5] = color{1 + (0.74902 - 1) * normlz, 0.74902 * normlz, 0.74902 * normlz, 1} // laser pod is the 6th character
+            else:
+                if u.activation_counter >= u.activation_thresh:
+                    u.activated = true
+                    u.t_fired = t_now
             // 2nd part -- move attempt
             if t_now - u.t_moved > u.move_delay:
-                var player_ufo_collision = false
                 let ufo_opos = u.pos
-                if (ufo_opos - player.pos).x > 0:
-                    u.pos = u.pos + xy_i{rnd(3) - 2, rnd(3) - 1} // horizontal motion biased towards the player
+                if player.health_state == 0: // if player is alive, we horizontally move towards their position
+                    u.pos = ufo_opos + xy_rndi(3) - 1 + xy{ 2 * (ufo_opos.x < player.pos.x) - 1, 0 }
                 else:
-                    u.pos = u.pos + xy_i{rnd(3), rnd(3) - 1}
+                    u.pos = ufo_opos + xy_rndi(3) - 1
                 while u.pos.y < 0 or u.pos.y > 3 * (c.num_cells_y / 4): u.pos = xy_i{u.pos.x, ufo_opos.y + rnd(3) - 1} // stay in upper 3/4 of screen vertically
                 // test for collisions, first with player
-                player_ufo_collision = player.collisiontest(u) and player.health_state == 0 // UFO does not collide with an already exploding player ship
-                if player_ufo_collision:
-                    kill_player()
-                // collisions with other UFOs
-                let collision_info = filter(num_alive) i: i != ufo_idx and u.collisiontest(UFOs_alive[i])
+                let player_ufo_collision = player.collisiontest(u) and player.health_state == 0 // UFO-player collision on attempted move?
+                if player_ufo_collision: kill_player()
+                let collision_info = filter(num_alive) i: i != ufo_idx and u.collisiontest(UFOs_alive[i]) // collisions with other UFOs
                 // if this UFO is activated already, bumping into another one increases the chances for that one to be activated
                 for (collision_info) i:
                     if u.activated: UFOs_alive[i].activation_counter++ 
-                // however, abandon move attempt if UFO-UFO collision
-                if collision_info.length or player_ufo_collision:
+                if collision_info.length or player_ufo_collision: // abandon move attempt if UFO-UFO collision
                     u.pos = ufo_opos
                 u.t_moved = t_now // move attempts count as move
     elif active_lasers.length == 0: // decide stage outcome only after last UFO laser bolts are off the screen!
@@ -287,12 +281,12 @@ def update_projectiles():
 
 // main loop
 FPS_t0 = gl_time()
-c.run_crt():
+c.run():
     t_now = gl_time()
     switch game_stage:
         case 0:
-            //intro.run()
-            //if intro.intro_stage > 2:
+            intro.run()
+            if intro.intro_stage > 2:
                 let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
                 if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
                 game_stage = 1
