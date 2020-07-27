@@ -1062,22 +1062,15 @@ class console:
         if running:
             if t <= 0.0: t = 0.001
             let t_now = gl_time()
-            if using_crt_shader:
-                while gl_frame() and (gl_time() - t_now < t):
-                    if gl_button("escape") >= 1 and esc_does_quit:
-                        running = false
-                        break
-                    rescale_() // this also rescales the font
-                    post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
-                        //gl_ortho(false, false)
-                        draw_()
+            while gl_frame() and (gl_time() - t_now < t):
+                if gl_button("escape") >= 1 and esc_does_quit:
+                    running = false
+                    break
+                rescale_() // this also rescales the font
+                if using_crt_shader:
+                    post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap): draw_()
                     gl_set_uniform("time", gl_time())
-            else:
-                while gl_frame() and (gl_time() - t_now < t):
-                    if gl_button("escape") >= 1 and esc_does_quit:
-                        running = false
-                        break   
-                    rescale_() // this also rescales the font
+                else:
                     draw_()
 
     def run(body):
@@ -1102,9 +1095,7 @@ class console:
             FPS = 1.0 / gl_delta_time()
             body()
             rescale_() // this also rescales the font
-            post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap):
-                //gl_ortho(false, false)
-                draw_()
+            post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap): draw_()
             gl_set_uniform("time", gl_time())
 
     def breakpoint(lb:string = "1"):
@@ -1117,10 +1108,16 @@ class console:
                 print "Cannot enable debugger without prior call to gl_window!"
         if debug_window_enabled:
             var quit = false
-            while not quit:
-                sleep()
+            while gl_frame() and not quit:
+                rescale_() // this also rescales the font
+                if using_crt_shader:
+                    post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap): draw_()
+                    gl_set_uniform("time", gl_time())
+                else:
+                    draw_()
                 im_frame():
                     im_window("Debugger: BP " + lb + "Press [Cancel] to quit", im_window_always_autoresize):
                         im_show_engine_stats()
                         im_show_vars()
                         im_button("Cancel"): quit = true
+                

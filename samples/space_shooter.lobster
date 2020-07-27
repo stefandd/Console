@@ -24,7 +24,7 @@ class Intro:
                 if i <= 34: // header line a bit slower
                     c.sleep(0.08)
                 else:
-                    c.sleep(0.01)
+                    c.sleep(0.02)
             screen_cpy = c.getscreen()
             intro_stage = 1
         elif intro_stage == 1: // wait for ENTER to be pressed
@@ -286,8 +286,8 @@ c.run():
     t_now = gl_time()
     switch game_stage:
         case 0:
-            //intro.run()
-            //if intro.intro_stage > 2:
+            intro.run()
+            if intro.intro_stage > 2:
                 let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
                 if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
                 game_stage = 1
