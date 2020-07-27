@@ -475,7 +475,7 @@ class sprite:
 
 class console:
 
-    running = false
+    private running = false
     fontheight:int = 22
     lineheight:int = 22
     fontwidth_:int = 22
@@ -1105,14 +1105,7 @@ class console:
             im_frame(): pass()
 
     def breakpoint(lb:string = "1"):
-        if not debug_window_enabled:
-            if manhattan(gl_window_size()) > 0:
-                im_init(false)
-                assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
-                debug_window_enabled = true
-            else:
-                print "Cannot use breakpoint() without prior call to gl_window!"
-        if debug_window_enabled:
+        if running:
             var quit = false
             while gl_frame() and not quit:
                 rescale_() // this also rescales the font
@@ -1126,5 +1119,5 @@ class console:
                         im_show_engine_stats()
                         im_show_vars()
                         im_button("Cancel"): quit = true
-                        
-                
+        else:
+            print "Cannot use breakpoint() before call to init()"
