@@ -3,7 +3,6 @@ import texture
 import color
 import date_time
 import sound_debug
-import debug_tools
 
 // console setup
 let c:console = console{border_show:true, border_cells_x:2, border_cells_y:2, num_cells_x:40, num_cells_y:40, fontheight:20, fontwidth_:20, lineheight:20, text_color:color{0.2, 1.0, 0.2, 1}, background_color:color{0.2, 0.2, 0.2, 1}}
@@ -160,7 +159,7 @@ def kill_player(): // function because we need this in 2 places (UFO collision a
     player.health_state = 1
     player.copyfrom(playersprite_xp1, false)
     player.t_state_chg = t_now
-    breakpoint("Player killed")
+    c.breakpoint("Player killed")
 
 def update_ufos():
     // move one UFO but so that the UFOs don't collide with each other or the player and horizontally towards the player ship
@@ -283,7 +282,7 @@ def update_projectiles():
 
 // main loop
 FPS_t0 = gl_time()
-c.run_crt():
+c.run():
     t_now = gl_time()
     switch game_stage:
         case 0:

@@ -3,6 +3,7 @@ import gl
 import texture
 import color
 import vec
+import imgui
 
 // crt shader
 var pixshader =
@@ -519,7 +520,8 @@ class console:
     FPS:float = 0.0
     using_crt_shader = false
     esc_does_quit = true
-
+    debug_window_enabled = false
+    
     // internal funcs
     def textdraw_():
         // draw screen characters
@@ -1104,3 +1106,21 @@ class console:
                 //gl_ortho(false, false)
                 draw_()
             gl_set_uniform("time", gl_time())
+
+    def breakpoint(lb:string = "1"):
+        if not debug_window_enabled:
+            if manhattan(gl_window_size()) > 0:
+                im_init(false)
+                assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
+                debug_window_enabled = true
+            else:
+                print "Cannot enable debugger without prior call to gl_window!"
+        if debug_window_enabled:
+            var quit = false
+            while not quit:
+                sleep()
+                im_frame():
+                    im_window("Debugger: BP " + lb + "Press [Cancel] to quit", im_window_always_autoresize):
+                        im_show_engine_stats()
+                        im_show_vars()
+                        im_button("Cancel"): quit = true
