@@ -286,8 +286,8 @@ c.run():
     t_now = gl_time()
     switch game_stage:
         case 0:
-            intro.run()
-            if intro.intro_stage > 2:
+            //intro.run()
+            //if intro.intro_stage > 2:
                 let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
                 if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
                 game_stage = 1
