@@ -1,9 +1,9 @@
 import std
 import gl
+import imgui
 import texture
 import color
 import vec
-import imgui
 
 // crt shader
 var pixshader =
@@ -521,6 +521,7 @@ class console:
     using_crt_shader = false
     esc_does_quit = true
     debug_window_enabled = false
+    debug_bp_label = ""
     
     // internal funcs
     def textdraw_():
@@ -1052,6 +1053,9 @@ class console:
         check(gl_set_font_name(font_path), "can\'t load font!")
         fatal(gl_load_materials(pixshader, true))
         gl_set_font_size(fontheight)
+        // init imgui debugger
+        im_init(false)
+        assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
         // recalc frame size in px
         fontwidth_ = gl_text_size(" ").x
         rescale_()
@@ -1084,6 +1088,7 @@ class console:
             body()
             rescale_() // this also rescales the font
             draw_()
+            im_frame(): pass()
 
     def run_crt(body):
         running = true
@@ -1097,6 +1102,7 @@ class console:
             rescale_() // this also rescales the font
             post_process(nil, gl_window_size(), "simplecrt", false, texture_format_nomipmap): draw_()
             gl_set_uniform("time", gl_time())
+            im_frame(): pass()
 
     def breakpoint(lb:string = "1"):
         if not debug_window_enabled:
@@ -1105,7 +1111,7 @@ class console:
                 assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
                 debug_window_enabled = true
             else:
-                print "Cannot enable debugger without prior call to gl_window!"
+                print "Cannot use breakpoint() without prior call to gl_window!"
         if debug_window_enabled:
             var quit = false
             while gl_frame() and not quit:
@@ -1120,4 +1126,5 @@ class console:
                         im_show_engine_stats()
                         im_show_vars()
                         im_button("Cancel"): quit = true
+                        
                 

@@ -1,6 +1,4 @@
 import console2 
-import texture
-import color
 import date_time
 import sound_debug
 
