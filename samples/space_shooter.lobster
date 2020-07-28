@@ -157,7 +157,6 @@ def kill_player(): // function because we need this in 2 places (UFO collision a
     player.health_state = 1
     player.copyfrom(playersprite_xp1, false)
     player.t_state_chg = t_now
-    c.breakpoint("Player killed")
 
 def update_ufos():
     // move one UFO but so that the UFOs don't collide with each other or the player and horizontally towards the player ship
@@ -208,6 +207,7 @@ def update_ufos():
             u.t_state_chg = t_now            
         if u.health_state == 2 and t_now - u.t_state_chg > 0.2:
             u.health_state = 3
+            //c.breakpoint("UFO killed")
         if u.health_state < 3:
             c.blit(u, 1)
 
@@ -284,8 +284,8 @@ c.run():
     t_now = gl_time()
     switch game_stage:
         case 0:
-            //intro.run()
-            //if intro.intro_stage > 2:
+            intro.run()
+            if intro.intro_stage > 2:
                 let bgmusic = play_wav("data/sounds/Cyber-Dream-Loop short.wav", -1) // by Eric Matyas from https://soundimage.org/looping-music/
                 if bgmusic: sound_volume(bgmusic, 0.5) else: print "can\'t load music!"
                 game_stage = 1
