@@ -280,7 +280,7 @@ def update_projectiles():
 
 // main loop
 FPS_t0 = gl_time()
-c.run():
+c.run_crt():
     t_now = gl_time()
     switch game_stage:
         case 0:
