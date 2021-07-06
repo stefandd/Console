@@ -1,0 +1,73 @@
+require 'console3'
+
+local c: console
+local r: region
+local treeobj: region
+local smalltreereg: region
+local sky: region
+local player: sprite
+local s1: sprite
+local s2: sprite
+local smalltree: sprite
+local t_last : float64 = Raylib.GetTime()
+local t_last_move: float64 = Raylib.GetTime()
+
+r:fromREXPaint("ufo.csv", BLACK)
+sky:fromREXPaint("nightsky.csv", BLACK)
+
+c:default()
+c.num_cells_x = 40
+c.num_cells_y = 40
+c.border_show = true
+c.text_color = RED
+c.background_color = BLUE
+c.fontsize_y = 16
+c.fontsize_x = 16
+c.lineheight = 16
+c.inited = true
+c:init("ASCII console test", "Px437_IBM_BIOS.fnt")
+c:clr()
+
+local ship: sprite
+ship:fromREXPaint("ufo.csv", BLACK)
+ship.blitlevel = 2
+ship.pos = Vector2i{0, 0}
+
+local function game():boolean
+    local result = true
+    local t_now = Raylib.GetTime()
+
+    c:clr()
+    sky:blit(c)
+    for i = 0, 512 do
+        ship.pos = {math.random(0, 35), math.random(0, 38)}
+        ship:blit(c)
+    end
+
+    if t_now - t_last_move > 0.05 then
+        if Raylib.IsKeyDown(KeyboardKey.KEY_D) then
+            c.viewport.x = c.viewport.x + 1
+            t_last_move = t_now
+        end
+        if Raylib.IsKeyDown(KeyboardKey.KEY_A) then
+            c.viewport.x = c.viewport.x - 1
+            t_last_move = t_now
+        end
+        if Raylib.IsKeyDown(KeyboardKey.KEY_W) then
+            c.viewport.y = c.viewport.y - 1
+            t_last_move = t_now
+        end
+        if Raylib.IsKeyDown(KeyboardKey.KEY_S) then
+            c.viewport.y = c.viewport.y + 1
+            t_last_move = t_now
+        end
+    end
+    return result
+end
+
+c:run(game) -- comment
+treeobj:destroy()
+smalltreereg:destroy()
+smalltree:destroy()
+sky:destroy()
+player:destroy()

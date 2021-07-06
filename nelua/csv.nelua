@@ -1,0 +1,84 @@
+
+require 'os'
+require 'io'
+require 'string'
+require 'sequence'
+
+local file: filestream
+local err: stringview
+local code: integer
+local ok: boolean
+local stdin: filestream = io.stdin
+local stdout: filestream = io.stdout
+local stderr: filestream = io.stderr
+
+global csvfile = @record{
+    header: sequence(string),
+    content: sequence(sequence(string))
+}
+
+local function string_split(str: string, sSeparator: string, nMax: integer, bRegexp: boolean): sequence(string)
+    local aRecord: sequence(string) = {}
+    if str:len() > 0 then
+        local bPlain = not bRegexp
+        local nField, nStart = 1, 1
+        local nFirst:isize, nLast:isize = str:find(sSeparator, nStart, bPlain)
+        while nFirst ~= 0 and nMax ~= 0 do
+            aRecord[nField] = str:sub(nStart, nFirst - 1)
+            nField = nField + 1
+            nStart = nLast + 1
+            nFirst, nLast = str:find(sSeparator, nStart, bPlain)
+            nMax = nMax - 1
+        end
+        aRecord[nField] = str:sub(nStart)
+    end
+    return aRecord
+end
+
+function csvfile:read(fname : string, num_header_lines: integer):boolean
+    file, err, code = io.open(fname, 'r')
+    if not file:isopen() then
+      	print("Error reading csv file " .. fname)
+        return false
+      	--os.exit()
+    else
+        self.header:clear()
+        self.content:clear()
+        for i = 1, num_header_lines do            
+            self.header[#self.header + 1] = file:read()
+        end
+        repeat
+            local line = file:read()
+            if #line > 0 then                
+                local elems = string_split(line, ",", -1, false)
+                if #elems > 0 then
+                    self.content[#self.content + 1] = elems
+                end
+            end
+        until #line == 0
+    end
+    return true
+end
+
+function csvfile:write(fname : string)
+    local content: sequence(sequence(string)) = {}
+    file, err, code = io.open(fname, 'w')
+    if not file:isopen() then
+        print("Error writing csv file " .. fname)
+        --os.exit()
+    else
+        for i = 1, #self.header do            
+            file:write(self.header[i] .. '\n')
+        end
+        for i = 1, #self.content do
+            if #self.content[i] > 0 then
+                local line: string = self.content[i][1]
+                for j = 2, #self.content[i] do
+                    line = line .. "," .. self.content[i][j]
+                end
+                file:write(line .. '\n')
+            end
+        end
+        file:close()
+    end
+end

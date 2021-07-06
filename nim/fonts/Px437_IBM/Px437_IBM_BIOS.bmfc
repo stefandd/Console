@@ -1,0 +1,63 @@
+# AngelCode Bitmap Font Generator configuration file
+fileVersion=1
+
+# font settings
+fontName=Px437 IBM BIOS
+fontFile=
+charSet=255
+fontSize=34
+aa=1
+scaleH=100
+useSmoothing=1
+isBold=0
+isItalic=0
+useUnicode=1
+disableBoxChars=1
+outputInvalidCharGlyph=0
+dontIncludeKerningPairs=0
+useHinting=1
+renderFromOutline=0
+useClearType=1
+autoFitNumPages=1
+autoFitFontSizeMin=0
+autoFitFontSizeMax=0
+
+# character alignment
+paddingDown=0
+paddingUp=0
+paddingRight=0
+paddingLeft=0
+spacingHoriz=1
+spacingVert=1
+useFixedHeight=0
+forceZero=0
+widthPaddingFactor=0.00
+
+# output file
+outWidth=512
+outHeight=512
+outBitDepth=32
+fontDescFormat=0
+fourChnlPacked=0
+textureFormat=png
+textureCompression=0
+alphaChnl=0
+redChnl=4
+greenChnl=4
+blueChnl=4
+invA=0
+invR=0
+invG=0
+invB=0
+
+# outline
+outlineThickness=0
+
+# selected chars
+chars=0-127,160-163,165,167,170-172,176-178,181-183,186-189,191,196-199,201,209,214,220,223-226,228-239
+chars=241-244,246-247,249-252,255,402,915,920,931,934,937,945,948-949,960,963-964,966,8226,8252,8319,8359
+chars=8592-8597,8616,8729-8730,8734-8735,8745,8776,8801,8804-8805,8962,8976,8992-8993,9472,9474,9484,9488
+chars=9492,9496,9500,9508,9516,9524,9532,9552-9580,9600,9604,9608,9612,9616-9619,9632,9644,9650,9658,9660
+chars=9668,9675,9688-9689,9786-9788,9792,9794,9824,9827,9829-9830,9834-9835
+
+# imported icon images

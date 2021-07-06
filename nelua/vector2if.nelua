@@ -1,0 +1,194 @@
+
+global Vector2i = @record{
+  x: integer,
+  y: integer,
+}
+## Vector2i.value.is_vector2i = true
+
+-- some extra functions
+global function Vector2i_abs(v: Vector2i): Vector2i
+    return Vector2i{math.abs(v.x), math.abs(v.y)}
+end
+global function Vector2i_manhattan(v: Vector2i): integer
+    return math.abs(v.x) + math.abs(v.y)
+end
+global function Vector2i_max(v1: Vector2i, v2: Vector2i): Vector2i
+    return Vector2i{math.max(v1.x, v2.x), math.max(v1.y, v2.y)}
+end
+global function Vector2i_min(v1: Vector2i, v2: Vector2i): Vector2i
+    return Vector2i{math.min(v1.x, v2.x), math.min(v1.y, v2.y)}
+end
+-- operator overloading
+-- Add two vectors
+function Vector2i.__add(v1: Vector2i, v2: Vector2i): Vector2i
+    return Vector2i{v1.x + v2.x, v1.y + v2.y}
+end
+-- Subtract two vectors
+function Vector2i.__sub(v1: Vector2i, v2: Vector2i): Vector2i
+    return Vector2i{v1.x - v2.x, v1.y - v2.y}
+end
+-- Calculate vector length
+function Vector2i.__len(v: Vector2i): number
+    return math.sqrt(v.x * v.x + v.y * v.y)
+end
+-- Negate provided vector (invert direction)
+function Vector2i.__unm(v: Vector2i): Vector2i
+    return Vector2i{-v.x, -v.y}
+end
+-- Multiply vector by scalar or by vector
+function Vector2i.__mul(v: Vector2i, multiplier: overload(Vector2i, number)): Vector2i
+    ## if multiplier.type.is_vector2i then
+        return Vector2i{v.x * multiplier.x, v.y * multiplier.y}
+    ## else
+        return Vector2i{v.x * multiplier, v.y * multiplier}
+    ## end
+end
+-- Divide vector by a float value or by vector
+function Vector2i.__div(v: Vector2i, divisor: overload(Vector2i, number)): Vector2i
+    ## if divisor.type.is_vector2i then
+        return Vector2i{v.x / divisor.x, v.y / divisor.y}
+    ## else
+        return Vector2i{v.x / divisor, v.y / divisor}
+    ## end
+end
+-- Equal operator ==
+function Vector2i.__eq(op1: overload(Vector2i, number), op2: overload(Vector2i, number)): boolean
+    ## if op1.type.is_arithmetic then
+            ## if op2.type.is_vector2i then
+                return (op1 == op2.x) and (op1 == op2.y)
+            ## end
+    ## elseif op1.type.is_vector2i then    
+            ## if op2.type.is_arithmetic then
+                return (op1.x == op2) and (op1.y == op2)
+            ## else
+                return (op1.x == op2.x) and (op1.y == op2.y)
+            ## end
+    ## end
+end
+-- Less or equal than operator <=
+function Vector2i.__le(op1: overload(Vector2i, number), op2: overload(Vector2i, number)): boolean
+    ## if op1.type.is_arithmetic then
+            ## if op2.type.is_vector2i then
+                return (op1 <= op2.x) and (op1 <= op2.y)
+            ## end
+    ## elseif op1.type.is_vector2i then    
+            ## if op2.type.is_arithmetic then
+                return (op1.x <= op2) and (op1.y <= op2)
+            ## else
+                return (op1.x <= op2.x) and (op1.y <= op2.y)
+            ## end
+    ## end
+end
+-- Less than operator <
+function Vector2i.__lt(op1: overload(Vector2i, number), op2: overload(Vector2i, number)): boolean
+    ## if op1.type.is_arithmetic then
+            ## if op2.type.is_vector2i then
+                return (op1 < op2.x) and (op1 < op2.y)
+            ## end
+    ## elseif op1.type.is_vector2i then    
+            ## if op2.type.is_arithmetic then
+                return (op1.x < op2) and (op1.y < op2)
+            ## else
+                return (op1.x < op2.x) and (op1.y < op2.y)
+            ## end
+    ## end
+end
+
+----------------
+
+global Vector2f = @record{
+  x: float32,
+  y: float32,
+}
+## Vector2f.value.is_vector2f = true
+
+-- some extra functions
+global function Vector2f_abs(v: Vector2f): Vector2f
+    return Vector2f{math.abs(v.x), math.abs(v.y)}
+end
+global function Vector2f_manhattan(v: Vector2f): integer
+    return math.abs(v.x) + math.abs(v.y)
+end
+global function Vector2f_max(v1: Vector2f, v2: Vector2f): Vector2f
+    return Vector2f{math.max(v1.x, v2.x), math.max(v1.y, v2.y)}
+end
+global function Vector2f_min(v1: Vector2f, v2: Vector2f): Vector2f
+    return Vector2f{math.min(v1.x, v2.x), math.min(v1.y, v2.y)}
+end
+-- operator overloading
+-- Add two vectors
+function Vector2f.__add(v1: Vector2f, v2: Vector2f): Vector2f
+    return Vector2f{v1.x + v2.x, v1.y + v2.y}
+end
+-- Subtract two vectors
+function Vector2f.__sub(v1: Vector2f, v2: Vector2f): Vector2f
+    return Vector2f{v1.x - v2.x, v1.y - v2.y}
+end
+-- Calculate vector length
+function Vector2f.__len(v: Vector2f): number
+    return math.sqrt(v.x * v.x + v.y * v.y)
+end
+-- Negate provided vector (invert direction)
+function Vector2f.__unm(v: Vector2f): Vector2f
+    return Vector2f{-v.x, -v.y}
+end
+-- Multiply vector by scalar or by vector
+function Vector2f.__mul(v: Vector2f, multiplier: overload(Vector2f, number)): Vector2f
+    ## if multiplier.type.is_vector2f then
+        return Vector2f{v.x * multiplier.x, v.y * multiplier.y}
+    ## else
+        return Vector2f{v.x * multiplier, v.y * multiplier}
+    ## end
+end
+-- Divide vector by a float value or by vector
+function Vector2f.__div(v: Vector2f, divisor: overload(Vector2f, number)): Vector2f
+    ## if divisor.type.is_vector2f then
+        return Vector2f{v.x / divisor.x, v.y / divisor.y}
+    ## else
+        return Vector2f{v.x / divisor, v.y / divisor}
+    ## end
+end
+-- Equal operator ==
+function Vector2f.__eq(op1: overload(Vector2f, number), op2: overload(Vector2f, number)): boolean
+    ## if op1.type.is_arithmetic then
+            ## if op2.type.is_vector2f then
+                return (op1 == op2.x) and (op1 == op2.y)
+            ## end
+    ## elseif op1.type.is_vector2f then    
+            ## if op2.type.is_arithmetic then
+                return (op1.x == op2) and (op1.y == op2)
+            ## else
+                return (op1.x == op2.x) and (op1.y == op2.y)
+            ## end
+    ## end
+end
+-- Less or equal than operator <=
+function Vector2f.__le(op1: overload(Vector2f, number), op2: overload(Vector2f, number)): boolean
+    ## if op1.type.is_arithmetic then
+            ## if op2.type.is_vector2f then
+                return (op1 <= op2.x) and (op1 <= op2.y)
+            ## end
+    ## elseif op1.type.is_vector2f then    
+            ## if op2.type.is_arithmetic then
+                return (op1.x <= op2) and (op1.y <= op2)
+            ## else
+                return (op1.x <= op2.x) and (op1.y <= op2.y)
+            ## end
+    ## end
+end
+-- Less than operator <
+function Vector2f.__lt(op1: overload(Vector2f, number), op2: overload(Vector2f, number)): boolean
+    ## if op1.type.is_arithmetic then
+            ## if op2.type.is_vector2f then
+                return (op1 < op2.x) and (op1 < op2.y)
+            ## end
+    ## elseif op1.type.is_vector2f then    
+            ## if op2.type.is_arithmetic then
+                return (op1.x < op2) and (op1.y < op2)
+            ## else
+                return (op1.x < op2.x) and (op1.y < op2.y)
+            ## end
+    ## end
+end
+
+----------------
